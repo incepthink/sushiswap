@@ -28,8 +28,7 @@
     "sort-package-json": "2.6.0",
     "tsx": "4.19.0",
     "turbo": "2.0.5",
-    "typescript": "catalog:",
-     "next": "15.1.4"
+    "typescript": "catalog:"
   },
   "packageManager": "pnpm@10.4.1",
   "engines": {
