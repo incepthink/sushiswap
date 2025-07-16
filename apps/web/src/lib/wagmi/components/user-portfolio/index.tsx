@@ -94,26 +94,26 @@ export const UserPortfolio = () => {
   if (!address) return <ConnectButton variant="secondary" />
 
   return (
-    <ResponsivePortfolioWrapper
-      trigger={
-        <Button variant="secondary">
+    <Button variant="secondary" className='bg-gradient-to-r from-[#00F5E0] to-[#00FAFF] text-black !rounded-md !text-[14px] !font-semibold'>
           {avatar ? (
             <Image
               alt="ens-avatar"
-              src={avatar}
+              src={"/assets/avatar.svg"}
               width={20}
               height={20}
               className="rounded-full"
               loader={cloudinaryFetchLoader}
             />
           ) : (
-            <JazzIcon diameter={20} address={address} />
+            <Image
+              alt="ens-avatar"
+              src={"/assets/avatar.svg"}
+              width={20}
+              height={20}
+              className="rounded-full"
+            />
           )}
           <span className="hidden sm:block">{shortenAddress(address)}</span>
         </Button>
-      }
-      content={content}
-      isSm={isSm}
-    />
   )
 }

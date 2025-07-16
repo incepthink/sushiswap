@@ -643,8 +643,12 @@ export const publicTransports = {
     `https://lb.drpc.org/ogrpc?network=celo&dkey=${drpcId}`,
   ),
   [EvmChainId.ETHEREUM]: http(
-    `https://lb.drpc.org/ogrpc?network=ethereum&dkey=${drpcId}`,
-  ),
+  process.env['NEXT_PUBLIC_ALCHEMY_ID'] 
+    ? `https://eth-mainnet.alchemyapi.io/v2/${process.env['NEXT_PUBLIC_ALCHEMY_ID']}`
+    : process.env['NEXT_PUBLIC_INFURA_ID']
+    ? `https://mainnet.infura.io/v3/${process.env['NEXT_PUBLIC_INFURA_ID']}`
+    : 'https://ethereum-rpc.publicnode.com'
+),
   [EvmChainId.FANTOM]: http(
     `https://lb.drpc.org/ogrpc?network=fantom&dkey=${drpcId}`,
   ),

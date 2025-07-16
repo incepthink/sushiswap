@@ -68,7 +68,7 @@ export const SimpleSwapTradeButton = () => {
                     fullWidth
                   >
                     <DialogTrigger asChild>
-                      <Button size="xl" fullWidth>
+                      <Button size="xl" fullWidth color='black'>
                         Swap
                       </Button>
                     </DialogTrigger>

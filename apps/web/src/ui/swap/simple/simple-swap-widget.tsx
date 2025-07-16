@@ -12,19 +12,19 @@ import { SwapMaintenanceMessage } from './swap-maintenance-message'
 export const SimpleSwapWidget = () => {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 p-4 md:p-6 bg-[rgba(255,255,255,0.8)] dark:bg-[rgba(25,32,49,0.8)] rounded-3xl backdrop-blur-2xl">
+      <div className="flex flex-col gap-[17px] p-4 md:p-6 dark:bg-transparent rounded-3xl">
         <div className="flex items-center justify-between">
-          <SwapModeButtons />
+          <p className='text-xl'>Swap</p>
           <SimpleSwapSettingsOverlay />
         </div>
         <SwapMaintenanceMessage />
-        <SimpleSwapToken0Input />
-        <SimpleSwapSwitchTokensButton />
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-10">
+          <SimpleSwapToken0Input />
+          <SimpleSwapSwitchTokensButton />
           <SimpleSwapToken1Input />
-          <SimpleSwapTradeButton />
-          <SimpleSwapTradeStats />
         </div>
+        <SimpleSwapTradeButton />
+        <SimpleSwapTradeStats />
       </div>
       <SimpleSwapBanner />
       <SimpleSwapTokenNotFoundDialog />

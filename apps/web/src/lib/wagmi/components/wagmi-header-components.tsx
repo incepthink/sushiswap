@@ -45,13 +45,13 @@ export const WagmiHeaderComponents: React.FC<WagmiHeaderComponentsProps> = ({
 
   return (
     <Suspense>
-      <HeaderNetworkSelector
+      {/* <HeaderNetworkSelector
         networks={networks}
         selectedNetwork={selectedNetwork}
         supportedNetworks={supportedNetworks}
         onChange={onChange}
         className="flex"
-      />
+      /> */}
       <UserPortfolio />
     </Suspense>
   )

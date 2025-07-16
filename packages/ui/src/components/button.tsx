@@ -7,14 +7,14 @@ import classNames from 'classnames'
 import type { IconComponent } from '../types'
 
 const buttonVariants = cva(
-  'cursor-pointer whitespace-nowrap inline-flex gap-2 items-center justify-center font-medium disabled:opacity-50 disabled:pointer-events-none ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-blue',
+  'cursor-pointer whitespace-nowrap text-black inline-flex gap-2 items-center justify-center font-medium disabled:opacity-50 disabled:pointer-events-none ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-blue',
   {
     variants: {
       variant: {
         default:
-          'bg-blue hover:bg-blue-600 focus:bg-blue-700 active:bg-blue-600 text-white',
+          'bg-[#00FFE9] hover:bg-[#00FFE9] focus:bg-[#00FFE9] active:bg-[#00FFE9] text-black',
         destructive:
-          'bg-red hover:bg-red-600 focus:bg-red-700 active:bg-red-600 text-white',
+          'bg-red hover:bg-red-600 focus:bg-red-700 active:bg-red-600 text-black',
         warning:
           'bg-amber-400 hover:bg-amber-500 focus:bg-amber-600 active:bg-amber-500 text-amber-900',
         outline:
