@@ -143,57 +143,77 @@ export function BalanceProvider({ children }: BalanceProviderContextProps) {
   }, [])
 
   const refetchChain = useCallback(
-    async (chainId: EvmChainId) => {
-      const chain = getOrCreateChain(state, chainId)
-      if (chain.isFetching || !state.account) return
-      chain.isFetching = true
+  async (chainId: EvmChainId) => {
+    console.log(`🔍 Starting balance fetch for chain ${chainId}`)
+    
+    const chain = getOrCreateChain(state, chainId)
+    if (chain.isFetching || !state.account) {
+      console.log(`❌ Skipping fetch: isFetching=${chain.isFetching}, account=${state.account}`)
+      return
+    }
+    chain.isFetching = true
 
-      // Remove the native address from the active tokens, it will be fetched separately
-      const activeTokens = Array.from(chain.activeTokens.keys()).filter(
-        (address) => address !== NativeAddress,
-      )
+    // Remove the native address from the active tokens, it will be fetched separately
+    const activeTokens = Array.from(chain.activeTokens.keys()).filter(
+      (address) => address !== NativeAddress,
+    )
 
-      const client = config.getClient({ chainId })
+    console.log(`📋 Active tokens to fetch:`, activeTokens)
+    console.log(`👤 Account:`, state.account)
 
-      const contracts = activeTokens.map((address) => ({
-        address,
-        functionName: 'balanceOf',
+    const client = config.getClient({ chainId })
+    console.log(`🌐 Client:`, client)
+
+    const contracts = activeTokens.map((address) => ({
+      address,
+      functionName: 'balanceOf',
+      args: [state.account],
+      abi: erc20Abi_balanceOf as
+        | typeof erc20Abi_balanceOf
+        | typeof multicall3Abi_getEthBalance,
+    }))
+
+    // Multicall should be available everywhere
+    // Worse case the native balance doesn't show up
+    const multicallAddress = publicWagmiConfig.chains.find(
+      (chain) => chain.id === chainId,
+    )?.contracts.multicall3.address
+
+    console.log(`📡 Multicall address:`, multicallAddress)
+
+    if (multicallAddress) {
+      contracts.push({
+        address: multicallAddress,
+        functionName: 'getEthBalance',
         args: [state.account],
-        abi: erc20Abi_balanceOf as
-          | typeof erc20Abi_balanceOf
-          | typeof multicall3Abi_getEthBalance,
-      }))
+        abi: multicall3Abi_getEthBalance,
+      })
+    }
 
-      // Multicall should be available everywhere
-      // Worse case the native balance doesn't show up
-      const multicallAddress = publicWagmiConfig.chains.find(
-        (chain) => chain.id === chainId,
-      )?.contracts.multicall3.address
+    console.log(`📋 Contracts to call:`, contracts)
 
-      if (multicallAddress) {
-        contracts.push({
-          address: multicallAddress,
-          functionName: 'getEthBalance',
-          args: [state.account],
-          abi: multicall3Abi_getEthBalance,
-        })
-      }
-
+    try {
       const results = await multicall(client, {
         contracts,
         allowFailure: true,
       })
+
+      console.log(`✅ Multicall results:`, results)
 
       results.forEach((result, index) => {
         // Should always be set, except for the last one, which we know is the native balance
         let address = activeTokens[index]
         if (!address) {
           address = NativeAddress
+          console.log(`🔍 Processing ETH balance (native address)`)
+        } else {
+          console.log(`🔍 Processing token balance for:`, address)
         }
 
         if (result.status === 'failure') {
           console.error(
-            `Failed to fetch balance for ${address} on chain ${chainId}`,
+            `❌ Failed to fetch balance for ${address} on chain ${chainId}`,
+            result.error
           )
 
           const existingBalance = chain.balanceMap.get(address)
@@ -209,20 +229,25 @@ export function BalanceProvider({ children }: BalanceProviderContextProps) {
           return
         }
 
+        console.log(`✅ Successfully fetched balance for ${address}:`, result.result)
+
         chain.balanceMap.set(address, {
           amount: result.result,
           lastUpdated: Date.now(),
         })
       })
+    } catch (error) {
+      console.error(`💥 Multicall failed entirely:`, error)
+    }
 
-      chain.isFetching = false
+    chain.isFetching = false
 
-      dispatch({
-        type: 'REFRESH',
-      })
-    },
-    [state, config],
-  )
+    dispatch({
+      type: 'REFRESH',
+    })
+  },
+  [state, config],
+)
 
   useEffect(() => {
     dispatch({

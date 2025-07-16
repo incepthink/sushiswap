@@ -11,11 +11,13 @@ export const SimpleSwapToken0Input = () => {
     isToken0Loading: isLoading,
   } = useDerivedStateSimpleSwap()
 
+  console.log("TOKEN)::", token0);
+
   return (
     <Web3Input.Currency
       id="swap-from"
       type="INPUT"
-      className="border border-accent p-3 bg-white dark:bg-slate-800 rounded-xl"
+      className="border-[2px] border-[#00FFE9] p-3 rounded-xl"
       chainId={chainId}
       onSelect={setToken0}
       value={swapAmountString}

@@ -17,9 +17,9 @@ const iconButtonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-blue hover:bg-blue-600 focus:bg-blue-700 active:bg-blue-600 text-white',
+          'bg-blue hover:bg-blue-600 focus:bg-blue-700 active:bg-blue-600 text-black',
         destructive:
-          'bg-red hover:bg-red-600 focus:bg-red-700 active:bg-red-600 text-white',
+          'bg-red hover:bg-red-600 focus:bg-red-700 active:bg-red-600 text-black',
         warning:
           'bg-amber-400 hover:bg-amber-500 focus:bg-amber-600 active:bg-amber-500 text-amber-900',
         outline:

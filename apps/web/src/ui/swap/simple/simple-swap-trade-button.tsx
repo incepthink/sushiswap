@@ -102,6 +102,7 @@ const _SimpleSwapTradeButton: FC<SimpleSwapTradeButtonProps> = ({
                       <Checker.Success tag={APPROVE_TAG_SWAP}>
                         <DialogTrigger asChild>
                           <Button
+                          style={{color: "black"}}
                             size="xl"
                             disabled={Boolean(
                               isSlippageError ||
@@ -114,7 +115,7 @@ const _SimpleSwapTradeButton: FC<SimpleSwapTradeButtonProps> = ({
                             color={
                               showPriceImpactWarning || showSlippageWarning
                                 ? 'red'
-                                : 'blue'
+                                : '#00FFE9'
                             }
                             fullWidth
                             testId="swap"

@@ -27,6 +27,9 @@ export const PortfolioTokens = () => {
   const { address } = useAccount()
   const { data, isLoading } = usePortfolioWallet(address)
 
+  console.log("DATA::", data);
+  
+
   // TODO: Add error state
   return (
     <div className="flex flex-col gap-y-5 h-full overflow-hidden">

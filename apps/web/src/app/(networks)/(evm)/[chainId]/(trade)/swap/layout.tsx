@@ -25,8 +25,24 @@ export default async function SwapLayout(props: {
 
   return (
     <Providers>
+      <div className="fixed inset-0 -z-9 overflow-hidden">
+              {/* <video
+                className="w-full h-full object-cover"
+                src="/assets/home.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+              /> */}
+              <img
+                src="/assets/ellipse-home.png"
+                className="w-full h-full object-cover"
+                alt=""
+              />
+            </div>
       <Header chainId={chainId} />
-      <main className="lg:p-4 mt-16 mb-[86px]">{children}</main>
+      <main className="lg:p-4 -mt-2 mb-[86px]">{children}</main>
     </Providers>
   )
 }
