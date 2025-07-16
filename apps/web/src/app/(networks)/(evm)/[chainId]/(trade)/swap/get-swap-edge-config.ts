@@ -5,7 +5,7 @@ import { get } from '@vercel/edge-config'
 // Import the existing SwapEdgeConfig type instead of creating a new one
 // You may need to find where this type is defined and import it
 // For now, let's use a generic type
-type SwapEdgeConfig = Record<string, any>
+export type SwapEdgeConfig = Record<string, any>
 
 const getSwapEdgeConfig = async (): Promise<SwapEdgeConfig> => {
   try {
