@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { get } from '@vercel/edge-config'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
