@@ -13,7 +13,12 @@ import React, {
   Fragment,
   type SetStateAction,
 } from 'react'
-import { PortfolioView } from '.'
+
+// Define PortfolioView enum here instead of importing
+export enum PortfolioView {
+  Default = 'Default',
+  Settings = 'Settings',
+}
 
 interface PortfolioSettingsViewProps {
   setView: Dispatch<SetStateAction<PortfolioView>>
