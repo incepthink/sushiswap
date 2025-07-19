@@ -26,11 +26,16 @@ import { HeaderNetworkSelector } from 'src/lib/wagmi/components/header-network-s
 import { type ChainId, evmChains, shortenAddress } from 'sushi'
 import { useAccount, useDisconnect } from 'wagmi'
 import type { GetEnsNameReturnType } from 'wagmi/actions'
-import { PortfolioView } from '.'
 import { PortfolioClaimables } from './portfolio-claimables'
 import { PortfolioPositions } from './portfolio-positions'
 import { PortfolioTokens } from './portfolio-tokens'
 import { PortfolioHistory } from './portolio-history'
+
+// Define PortfolioView enum in this file
+export enum PortfolioView {
+  Default = 'Default',
+  Settings = 'Settings',
+}
 
 enum PortfolioTab {
   Tokens = 'Tokens',

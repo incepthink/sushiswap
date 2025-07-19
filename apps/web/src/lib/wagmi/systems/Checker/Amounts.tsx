@@ -55,6 +55,7 @@ const Amounts: FC<AmountsProps> = ({
         fullWidth={fullWidth}
         size={size}
         {...props}
+        style={{color: "black !important"}}
       >
         Enter Amount
       </Button>

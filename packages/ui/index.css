@@ -168,6 +168,10 @@ html[class="dark"] *.scroll::-webkit-scrollbar-thumb {
   pointer-events: all;
 }
 
+.button-black-text {
+  color: black !important;
+}
+
 @layer utilities {
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {

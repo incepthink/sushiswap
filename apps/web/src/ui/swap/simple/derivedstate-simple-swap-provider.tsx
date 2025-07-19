@@ -31,18 +31,35 @@ import { useAccount, useGasPrice } from 'wagmi'
 import { type SupportedChainId, isSupportedChainId } from '../../../config'
 import { useCarbonOffset } from '../../../lib/swap/useCarbonOffset'
 
+const customDefaultCurrency: Record<number, string> = {
+  1: 'NATIVE', // Ethereum - use ETH
+  137: 'NATIVE', // Polygon - use MATIC
+  42161: 'NATIVE', // Arbitrum - use ETH
+  8453: 'NATIVE', // Base - use ETH
+  // Add more chains as needed
+}
+
+const customQuoteCurrency: Record<number, string> = {
+  1: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // Ethereum - use USDC
+  137: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // Polygon - use USDC
+  42161: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8', // Arbitrum - use USDC
+  8453: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base - use USDC
+  // Add more chains as needed
+}
+
 const getTokenAsString = (token: Type | string) =>
   typeof token === 'string'
     ? token
     : token.isNative
       ? 'NATIVE'
       : token.wrapped.address
-const getDefaultCurrency = (chainId: number) =>
-  getTokenAsString(defaultCurrency[chainId as keyof typeof defaultCurrency])
-const getQuoteCurrency = (chainId: number) =>
-  getTokenAsString(
-    defaultQuoteCurrency[chainId as keyof typeof defaultQuoteCurrency],
-  )
+const getDefaultCurrency = (chainId: number) => {
+  return customDefaultCurrency[chainId] || 'NATIVE' // Fallback to native token
+}
+
+const getQuoteCurrency = (chainId: number) => {
+  return customQuoteCurrency[chainId] || '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' // Fallback to USDC on Ethereum
+}
 
 interface State {
   mutate: {
