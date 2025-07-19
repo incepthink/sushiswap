@@ -68,7 +68,7 @@ export const SettingsOverlay: FC<SettingsOverlayProps> = ({
   )
   return (
     <Dialog>
-      <DialogTrigger asChild>
+      <DialogTrigger asChild style={{color: 'white'}}>
         {children ? (
           children
         ) : (
@@ -78,6 +78,7 @@ export const SettingsOverlay: FC<SettingsOverlayProps> = ({
             variant="secondary"
             icon={Cog6ToothIcon}
             onClick={() => setOpen(true)}
+            style={{color: "white"}}
           >
             {Number(slippageTolerance) > 0.5 &&
             modules.includes(SettingsModule.SlippageTolerance) ? (

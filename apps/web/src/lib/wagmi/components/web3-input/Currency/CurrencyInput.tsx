@@ -30,6 +30,8 @@ import { usePrice } from '~evm/_common/ui/price-provider/price-provider/use-pric
 import { TokenSelector } from '../../token-selector/token-selector'
 import { BalancePanel } from './BalancePanel'
 import { PricePanel } from './PricePanel'
+import { usePriceBackend } from './usePriceBackend'
+import { SimpleTokenSelector } from '../../token-selector/token-lists/SimpleTokenSelector'
 
 interface CurrencyInputProps {
   id?: string
@@ -99,11 +101,22 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   const { data: balance, isLoading: isBalanceLoading } =
     useAmountBalance(currency)
 
-  const { data: price, isLoading: isPriceLoading } = usePrice({
-    chainId: currency?.chainId,
-    address: currency?.wrapped?.address,
-    enabled: !hidePricing,
-  })
+  // const { data: price, isLoading: isPriceLoading } = usePrice({
+  //   chainId: currency?.chainId,
+  //   address: currency?.wrapped?.address,
+  //   enabled: !hidePricing,
+  // })
+
+  const { tokenPrice: price, isLoading: isPriceLoading } = usePriceBackend(
+  currency?.wrapped?.address,
+  undefined,
+  { 
+    enabled: !hidePricing 
+  }
+)
+
+  console.log("PRICE::", price);
+  
 
   const _value = useMemo(
     () => tryParseAmount(value, currency),
@@ -153,102 +166,93 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   }, [currency, chainId])
 
   const selector = useMemo(() => {
-    if (!onSelect) return null
+  if (!onSelect) return null
 
-    return (
-      <TokenSelector
-        currencies={currencies}
-        selected={currency}
-        chainId={chainId}
-        onSelect={onSelect}
-        includeNative={allowNative}
-        hidePinnedTokens={hidePinnedTokens}
-        hideSearch={hideSearch}
-        networks={networks}
-        selectedNetwork={selectedNetwork}
-        onNetworkSelect={onNetworkChange}
+  return (
+    <SimpleTokenSelector
+      selected={currency}
+      chainId={chainId}
+      onSelect={onSelect}
+      includeNative={allowNative}
+    >
+      <Button
+        data-state={currencyLoading ? 'inactive' : 'active'}
+        size="lg"
+        variant={currency ? 'secondary' : 'default'}
+        id={id}
+        type="button"
+        className={classNames(
+          currency ? 'pl-2 pr-3' : '',
+          networks ? '!h-11' : '',
+          currencyClassName,
+          '!rounded-full data-[state=inactive]:hidden data-[state=active]:flex',
+        )}
       >
-        <Button
-          data-state={currencyLoading ? 'inactive' : 'active'}
-          size="lg"
-          variant={currency ? 'secondary' : 'default'}
-          id={id}
-          type="button"
-          className={classNames(
-            currency ? 'pl-2 pr-3' : '',
-            networks ? '!h-11' : '',
-            currencyClassName,
-            '!rounded-full data-[state=inactive]:hidden data-[state=active]:flex',
-          )}
-        >
-          {currency ? (
-            networks ? (
-              <>
-                <div className="w-[28px] h-[28px] mr-1.5">
-                  <Badge
-                    className="border border-slate-900 rounded-full z-[11]"
-                    position="bottom-right"
-                    badgeContent={
-                      <NetworkIcon
-                        chainId={currency.chainId}
-                        width={16}
-                        height={16}
-                      />
-                    }
-                  >
-                    <Currency.Icon
-                      disableLink
-                      currency={currency}
-                      width={28}
-                      height={28}
+        {currency ? (
+          networks ? (
+            <>
+              <div className="w-[28px] h-[28px] mr-1.5">
+                <Badge
+                  className="border border-slate-900 rounded-full z-[11]"
+                  position="bottom-right"
+                  badgeContent={
+                    <NetworkIcon
+                      chainId={currency.chainId}
+                      width={16}
+                      height={16}
                     />
-                  </Badge>
-                </div>
-                <div className="flex flex-col items-start">
-                  <span className="text-xl leading-5">{currency.symbol}</span>
-                  <span className="text-xs leading-3 text-muted-foreground">
-                    {EvmChain.from(currency.chainId)?.name}
-                  </span>
-                </div>
-                <SelectPrimitive.Icon asChild>
-                  <ChevronRightIcon strokeWidth={2} width={16} height={16} />
-                </SelectPrimitive.Icon>
-              </>
-            ) : (
-              <>
-                <div className="w-[28px] h-[28px] mr-0.5">
+                  }
+                >
                   <Currency.Icon
                     disableLink
                     currency={currency}
                     width={28}
                     height={28}
                   />
-                </div>
-                <span className="text-xl">{currency.symbol}</span>
-                <SelectIcon />
-              </>
-            )
+                </Badge>
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-xl leading-5">{currency.symbol}</span>
+                <span className="text-xs leading-3 text-muted-foreground">
+                  {EvmChain.from(currency.chainId)?.name}
+                </span>
+              </div>
+              <SelectPrimitive.Icon asChild>
+                <ChevronRightIcon strokeWidth={2} width={16} height={16} />
+              </SelectPrimitive.Icon>
+            </>
           ) : (
-            'Select token'
-          )}
-        </Button>
-      </TokenSelector>
-    )
-  }, [
-    currencyClassName,
-    currencyLoading,
-    id,
-    onSelect,
-    currencies,
-    currency,
-    chainId,
-    allowNative,
-    hidePinnedTokens,
-    hideSearch,
-    networks,
-    selectedNetwork,
-    onNetworkChange,
-  ])
+            <>
+              <div className="w-[28px] h-[28px] mr-0.5">
+                <Currency.Icon
+                  disableLink
+                  currency={currency}
+                  width={28}
+                  height={28}
+                />
+              </div>
+              <span className="text-xl">{currency.symbol}</span>
+              <SelectIcon />
+            </>
+          )
+        ) : (
+          'Select token'
+        )}
+      </Button>
+    </SimpleTokenSelector>
+  )
+}, [
+  currencyClassName,
+  currencyLoading,
+  id,
+  onSelect,
+  currency,
+  chainId,
+  allowNative,
+  networks,
+  selectedNetwork,
+  onNetworkChange,
+])
 
   return (
     <div

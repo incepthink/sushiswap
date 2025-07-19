@@ -7,20 +7,20 @@ import classNames from 'classnames'
 import type { IconComponent } from '../types'
 
 const buttonVariants = cva(
-  'cursor-pointer whitespace-nowrap text-black inline-flex gap-2 items-center justify-center font-medium disabled:opacity-50 disabled:pointer-events-none ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-blue',
+  'cursor-pointer whitespace-nowrap inline-flex gap-2 items-center justify-center font-medium disabled:opacity-50 disabled:pointer-events-none ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-blue',
   {
     variants: {
       variant: {
         default:
           'bg-[#00FFE9] hover:bg-[#00FFE9] focus:bg-[#00FFE9] active:bg-[#00FFE9] text-black',
         destructive:
-          'bg-red hover:bg-red-600 focus:bg-red-700 active:bg-red-600 text-black',
+          'bg-red hover:bg-red-600 focus:bg-red-700 active:bg-red-600 text-white',
         warning:
           'bg-amber-400 hover:bg-amber-500 focus:bg-amber-600 active:bg-amber-500 text-amber-900',
         outline:
           '!border border-accent bg-background hover:bg-muted hover:text-accent-foreground',
         secondary:
-          'bg-secondary hover:bg-muted focus:bg-accent black:bg-muted black:hover:bg-accent black:focus:bg-accent',
+          'bg-secondary hover:bg-muted focus:bg-accent !text-white black:bg-muted black:hover:bg-accent black:focus:bg-accent text-white',
         ghost: 'hover:bg-secondary focus:bg-accent',
         link: 'text-blue hover:underline hover:text-blue-700 font-semibold !p-0 !h-[unset] !min-h-[unset]',
       },
@@ -115,6 +115,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         {...props}
         testdata-id={`${testId || id}-button`}
+        style={{color: "black"}}
       >
         <ButtonContent asChild={asChild}>
           {loading ? (

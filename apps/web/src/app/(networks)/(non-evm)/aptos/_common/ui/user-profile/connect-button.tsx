@@ -20,7 +20,7 @@ export function ConnectButton(props: ButtonProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button {...props}>
+        <Button {...props} className='bg-[#7DF6EB]'>
           <span className="hidden sm:block">Connect Wallet</span>
           <span className="block sm:hidden">Connect</span>
         </Button>

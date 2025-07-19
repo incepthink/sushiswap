@@ -14,7 +14,7 @@ import { startOfMonth, addMonths, differenceInMonths } from "date-fns";
 import { useDerivedStateSimpleSwap } from './derivedstate-simple-swap-provider'
 import axios from "axios";
 
-const BACKEND_URL = "https://aggtrade-backend.onrender.com";
+export const BACKEND_URL = "https://aggtrade-backend.onrender.com";
 
 const formatTooltipLabel = (ts: number) =>
   new Date(ts).toLocaleString(undefined, {

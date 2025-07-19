@@ -1,9 +1,11 @@
 import type { TokenListChainId } from '@sushiswap/graph-client/data-api'
 import { List } from '@sushiswap/ui'
 import type { Type } from 'sushi/currency'
+import type { EvmChainId } from 'sushi/chain'
 import { useAccount } from 'wagmi'
 import { usePrices } from '~evm/_common/ui/price-provider/price-provider/use-prices'
-import { useMyTokens } from '../hooks/use-my-tokens'
+// Import your new hook instead of useMyTokens
+import { useFixedTokens } from './common/use-fixed-tokens'
 import {
   TokenSelectorCurrencyList,
   TokenSelectorCurrencyListLoading,
@@ -20,7 +22,7 @@ interface TokenSelectorMyTokens {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col space-y-2">
-      <div className="text-sm">My Tokens</div>
+      <div className="text-sm">Featured Tokens</div> {/* Changed from "My Tokens" */}
       <List.Control className="flex flex-1">
         <div className="flex-1 block">{children}</div>
       </List.Control>
@@ -37,11 +39,13 @@ export function TokenSelectorMyTokens({
 }: TokenSelectorMyTokens) {
   const { address } = useAccount()
 
-  const { data, isError, isLoading } = useMyTokens({
-    chainId,
-    account: address,
+  // Use the fixed tokens hook instead of useMyTokens
+  const { tokens, balanceMap, isError, isLoading } = useFixedTokens({
+    chainId: chainId as EvmChainId,
     includeNative,
   })
+
+  console.log("FIXED TOKENS::", tokens);
 
   const { data: pricesMap } = usePrices({
     chainId,
@@ -63,11 +67,11 @@ export function TokenSelectorMyTokens({
       </Shell>
     )
 
-  if (!data.balanceMap?.size)
+  if (!tokens.length)
     return (
       <Shell>
         <div className="flex w-full justify-center py-3">
-          No balances found.
+          No tokens available for this chain.
         </div>
       </Shell>
     )
@@ -75,16 +79,15 @@ export function TokenSelectorMyTokens({
   return (
     <Shell>
       <TokenSelectorCurrencyList
-        id="trending"
+        id="fixed-tokens"
         selected={selected}
         onSelect={onSelect}
         onShowInfo={onShowInfo}
-        // pin={{}}
-        currencies={data.tokens}
+        currencies={tokens} // Pass the fixed tokens array directly
         chainId={chainId}
-        balancesMap={data.balanceMap}
+        balancesMap={balanceMap} // Empty map since we're not showing balances
         pricesMap={pricesMap}
-        isBalanceLoading={!data.balanceMap}
+        isBalanceLoading={false} // Set to false since we're not loading balances
       />
     </Shell>
   )
