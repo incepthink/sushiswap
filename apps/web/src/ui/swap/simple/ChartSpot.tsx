@@ -16,6 +16,24 @@ import axios from "axios";
 
 export const BACKEND_URL = "https://aggtrade-backend.onrender.com";
 
+// Token logo mapping function
+const getTokenLogo = (symbol: string, fallbackUrl?: string) => {
+  switch (symbol?.toUpperCase()) {
+    case 'ETH':
+      return 'https://cdn.moralis.io/eth/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png';
+    case 'USDC':
+      return '/logos/usdc.png';
+    case 'USDT':
+      return 'https://cdn.moralis.io/eth/0xdac17f958d2ee523a2206206994597c13d831ec7.png';
+    case 'WETH':
+      return '/logos/weth.png';
+    case 'WBTC':
+      return '/logos/wbtc.png';
+    default:
+      return fallbackUrl || null;
+  }
+};
+
 const formatTooltipLabel = (ts: number) =>
   new Date(ts).toLocaleString(undefined, {
     year: "numeric",
@@ -138,6 +156,9 @@ export const ChartHeader = () => {
 
   if (!token0) return null;
 
+  // Get the appropriate logo for the token
+  const tokenLogo = getTokenLogo(token0.symbol!, token0.logoUrl);
+
   return (
     <div className="flex lg:flex-col justify-between flex-row gap-2 p-4 px-6">
       {/* Token Info */}
@@ -147,17 +168,26 @@ export const ChartHeader = () => {
             isMobile ? "w-8" : isLargeScreen ? "w-16" : "w-12"
           } rounded-full overflow-hidden flex-shrink-0 bg-gray-700`}
         >
-          {token0.logoUrl ? (
+          {tokenLogo ? (
             <img
-              src={token0.logoUrl}
+              src={tokenLogo}
               alt={token0.symbol}
               className="w-full object-cover"
+              onError={(e) => {
+                // Fallback to first letter if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-white font-bold">
-              {token0.symbol?.charAt(0)}
-            </div>
-          )}
+          ) : null}
+          <div 
+            className="w-full h-full flex items-center justify-center text-white font-bold"
+            style={{ display: tokenLogo ? 'none' : 'flex' }}
+          >
+            {token0.symbol?.charAt(0)}
+          </div>
         </div>
         <p
           className={`${
@@ -293,6 +323,9 @@ const ChartSpot = () => {
     );
   }
 
+  // Get the appropriate logo for the token
+  const tokenLogo = getTokenLogo(token0!.symbol!, token0!.logoUrl);
+
   return (
     <div className="w-full h-full relative dot-pattern-cyan">
       {/* Header inside chart container - only on large screens */}
@@ -319,17 +352,26 @@ const ChartSpot = () => {
                 isMobile ? "w-8" : isLargeScreen ? "w-12" : "w-12"
               } rounded-full overflow-hidden flex-shrink-0 bg-gray-700`}
             >
-              {token0.logoUrl ? (
+              {tokenLogo ? (
                 <img
-                  src={token0.logoUrl}
+                  src={tokenLogo}
                   alt={token0.symbol}
                   className="w-full object-cover"
+                  onError={(e) => {
+                    // Fallback to first letter if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
                 />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white font-bold">
-                  {token0.symbol?.charAt(0)}
-                </div>
-              )}
+              ) : null}
+              <div 
+                className="w-full h-full flex items-center justify-center text-white font-bold"
+                style={{ display: tokenLogo ? 'none' : 'flex' }}
+              >
+                {token0.symbol?.charAt(0)}
+              </div>
             </div>
             <p
               className={`${

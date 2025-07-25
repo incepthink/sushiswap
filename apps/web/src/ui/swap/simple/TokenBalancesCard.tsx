@@ -97,7 +97,18 @@ export function TokenBalancesCard() {
                       <tr className="hover:bg-[rgba(0,245,224,0.1)] transition-colors duration-200 border-b border-[rgba(255,255,255,0.1)]">
                         <td className="py-4 pr-4">
                           <div className="flex items-center gap-3 relative z-50">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-400 to-blue-500 flex items-center justify-center">
+                            <img
+                              src="/logos/eth-logo.png"
+                              alt="ETH"
+                              className="w-6 h-6 rounded-full"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-400 to-blue-500 flex items-center justify-center" style={{ display: 'none' }}>
                               <span className="text-xs font-bold text-white">Ξ</span>
                             </div>
                             <div className="relative z-50">
@@ -174,7 +185,18 @@ export function TokenBalancesCard() {
                 {data.ethBalance.balance > 0 && (
                   <div className="bg-[rgba(0,245,224,0.1)] rounded-lg p-4 relative z-50">
                     <div className="flex items-center gap-3 mb-4 relative z-50">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-400 to-blue-500 flex items-center justify-center">
+                      <img
+                        src="/logos/eth-logo.png"
+                        alt="ETH"
+                        className="w-8 h-8 rounded-full"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-400 to-blue-500 flex items-center justify-center" style={{ display: 'none' }}>
                         <span className="text-sm font-bold text-white">Ξ</span>
                       </div>
                       <div className="flex-1 relative z-50">

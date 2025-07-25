@@ -30,6 +30,7 @@ import { type Address, isAddress } from 'viem'
 import { useAccount, useGasPrice } from 'wagmi'
 import { type SupportedChainId, isSupportedChainId } from '../../../config'
 import { useCarbonOffset } from '../../../lib/swap/useCarbonOffset'
+import { TOKENS } from 'src/lib/wagmi/components/token-selector/token-lists/common/use-fixed-tokens'
 
 const customDefaultCurrency: Record<number, string> = {
   1: 'NATIVE', // Ethereum - use ETH
@@ -54,11 +55,11 @@ const getTokenAsString = (token: Type | string) =>
       ? 'NATIVE'
       : token.wrapped.address
 const getDefaultCurrency = (chainId: number) => {
-  return customDefaultCurrency[chainId] || 'NATIVE' // Fallback to native token
+  return 'NATIVE' // Always ETH (first token in your list)
 }
 
 const getQuoteCurrency = (chainId: number) => {
-  return customQuoteCurrency[chainId] || '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' // Fallback to USDC on Ethereum
+  return '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' // Always USDC (second token in your list)
 }
 
 interface State {
@@ -116,17 +117,25 @@ const DerivedstateSimpleSwapProvider: FC<
 
   // Get the searchParams and complete with defaults.
   // This handles the case where some params might not be provided by the user
-  const defaultedParams = useMemo(() => {
-    const params = new URLSearchParams(searchParams)
+ const defaultedParams = useMemo(() => {
+  const params = new URLSearchParams(searchParams)
 
-    if (!params.has('token0')) {
-      params.set('token0', getDefaultCurrency(chainId))
-    }
-    if (!params.has('token1')) {
-      params.set('token1', getQuoteCurrency(chainId))
-    }
-    return params
-  }, [chainId, searchParams])
+  // Force defaults regardless of what's in the URL
+  if (!params.has('token0') || params.get('token0') === '') {
+    params.set('token0', 'NATIVE')
+  }
+  if (!params.has('token1') || params.get('token1') === '') {
+    params.set('token1', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')
+  }
+
+  // If somehow SUSHI got set, replace it with USDC
+  if (params.get('token1')?.toLowerCase().includes('sushi') || 
+      params.get('token1') === '0x6b3595068778dd592e39a122f4f5a5cf09c90fe2') {
+    params.set('token1', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')
+  }
+
+  return params
+}, [chainId, searchParams])
 
   // Get a new searchParams string by merging the current
   // searchParams with a provided key/value pair

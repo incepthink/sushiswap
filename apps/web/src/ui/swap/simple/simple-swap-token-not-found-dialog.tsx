@@ -94,7 +94,7 @@ export const SimpleSwapTokenNotFoundDialog = () => {
 
   return (
     <Dialog
-      open={Boolean(token0NotInList || token1NotInList)}
+      open={false}
       onOpenChange={(open) => !open && reset()}
     >
       <DialogContent className="!max-h-screen overflow-y-auto">
