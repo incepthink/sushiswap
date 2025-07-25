@@ -28,7 +28,6 @@ async function fetchSpotBalance(address: string): Promise<SpotBalanceData> {
   if (!address) {
     throw new Error("Address is required");
   }
-  console.log("APIKEY::", process.env.NEXT_PUBLIC_COVALENT_API_KEY);
   
 
   try {
