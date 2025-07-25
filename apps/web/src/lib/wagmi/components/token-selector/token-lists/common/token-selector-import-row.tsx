@@ -60,7 +60,7 @@ export const TokenSelectorImportRow: FC<TokenSelectorImportRow> = ({
   }, [onImport])
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={false} onOpenChange={setOpen}>
       <div className="relative py-0.5 h-[64px]">
         <div className="flex items-center w-full hover:bg-muted focus:bg-accent h-full rounded-lg px-3">
           <div className="flex flex-row items-center flex-grow gap-4">

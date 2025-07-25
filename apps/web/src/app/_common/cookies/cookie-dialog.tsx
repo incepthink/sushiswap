@@ -198,7 +198,7 @@ export function CookieDialog({ open: _open }: { open: boolean }) {
   }, [onConfirm])
 
   return (
-    <Dialog open={open && isMounted} onOpenChange={setOpen}>
+    <Dialog open={false} onOpenChange={setOpen}>
       {page === 'base' ? (
         <BaseCookieDialog onAction={onBaseAction} />
       ) : (
