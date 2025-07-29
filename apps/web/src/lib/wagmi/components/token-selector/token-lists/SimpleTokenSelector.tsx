@@ -30,23 +30,34 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
 }) => {
   const [open, setOpen] = useState(false)
   
-  const { tokens } = useFixedTokens({
+  const { tokens, isLoading, isError } = useFixedTokens({
     chainId,
     includeNative,
   })
 
   const handleSelect = useCallback(
     (currency: Type) => {
+      console.log('SimpleTokenSelector: Selecting token', currency.symbol) // Debug log
       onSelect(currency)
       setOpen(false)
     },
     [onSelect],
   )
 
+  // Debug logs
+  console.log('SimpleTokenSelector: tokens', tokens)
+  console.log('SimpleTokenSelector: chainId', chainId)
+  console.log('SimpleTokenSelector: open', open)
+
   // Check if selected token exists in our fixed tokens list
   const isSelectedTokenAvailable = selected ? 
     tokens.some(token => token.id === selected.id) : 
     true
+
+  if (isError) {
+    console.error('Error loading tokens')
+    return null
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -65,29 +76,37 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
             </div>
           )}
           
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {tokens.map((token: Type) => (
-              <button
-                key={token.id}
-                onClick={() => handleSelect(token)}
-                className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                  selected?.id === token.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                }`}
-              >
-                <div className="w-8 h-8">
-                  <Currency.Icon
-                    currency={token}
-                    width={32}
-                    height={32}
-                  />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="font-medium text-white">{token.symbol}</div>
-                  <div className="text-sm text-gray-400">{token.name}</div>
-                </div>
-              </button>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="text-center py-4">Loading tokens...</div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {tokens.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">No tokens available</div>
+              ) : (
+                tokens.map((token: Type) => (
+                  <button
+                    key={token.id}
+                    onClick={() => handleSelect(token)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
+                      selected?.id === token.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    }`}
+                  >
+                    <div className="w-8 h-8">
+                      <Currency.Icon
+                        currency={token}
+                        width={32}
+                        height={32}
+                      />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="font-medium text-white">{token.symbol}</div>
+                      <div className="text-sm text-gray-400">{token.name}</div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

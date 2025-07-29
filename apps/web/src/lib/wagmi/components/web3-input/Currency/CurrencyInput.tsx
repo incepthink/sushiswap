@@ -61,6 +61,7 @@ interface CurrencyInputProps {
   networks?: readonly EvmChainId[]
   selectedNetwork?: EvmChainId
   onNetworkChange?: (network: number) => void
+  tokenSelectorOnly?: boolean  // NEW PROP
 }
 
 const CurrencyInput: FC<CurrencyInputProps> = ({
@@ -91,6 +92,7 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   networks,
   selectedNetwork,
   onNetworkChange,
+  tokenSelectorOnly = false,  // NEW PROP
 }) => {
   const isMounted = useIsMounted()
 
@@ -177,7 +179,7 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
     >
       <Button
         data-state={currencyLoading ? 'inactive' : 'active'}
-        size="lg"
+        size="xl"
         variant={currency ? 'secondary' : 'default'}
         id={id}
         type="button"
@@ -185,8 +187,11 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
           currency ? 'pl-2 pr-3' : '',
           networks ? '!h-11' : '',
           currencyClassName,
-          '!rounded-full data-[state=inactive]:hidden data-[state=active]:flex',
+          ' data-[state=inactive]:hidden data-[state=active]:flex',
+          // Custom styling for tokenSelectorOnly
+          tokenSelectorOnly ? ' text-xl px-4 py-2 rounded-lg flex items-center gap-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#00F6E3]/20 to-[#00F6E3]/10 border border-[#00F6E3]/30 hover:border-[#00F6E3]/50 transition-all duration-200' : ''
         )}
+        style={tokenSelectorOnly ? {} : {}}
       >
         {currency ? (
           networks ? (
@@ -206,8 +211,8 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
                   <Currency.Icon
                     disableLink
                     currency={currency}
-                    width={28}
-                    height={28}
+                    width={32}
+                    height={32}
                   />
                 </Badge>
               </div>
@@ -223,20 +228,24 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
             </>
           ) : (
             <>
-              <div className="w-[28px] h-[28px] mr-0.5">
+              <div className={classNames(
+                tokenSelectorOnly ? "w-6 h-6 rounded-full overflow-hidden flex-shrink-0" : "w-[28px] h-[28px] mr-0.5"
+              )}>
                 <Currency.Icon
                   disableLink
                   currency={currency}
-                  width={28}
-                  height={28}
+                  width={tokenSelectorOnly ? 24 : 28}
+                  height={tokenSelectorOnly ? 24 : 28}
                 />
               </div>
-              <span className="text-xl">{currency.symbol}</span>
-              <SelectIcon />
+              <span className={classNames(
+                tokenSelectorOnly ? "text-white font-medium text-sm" : "text-xl"
+              )}>{currency.symbol}</span>
+              <SelectIcon className={tokenSelectorOnly ? "text-white/70" : ""} />
             </>
           )
         ) : (
-          'Select token'
+          tokenSelectorOnly ? 'Select Token' : 'Select token'
         )}
       </Button>
     </SimpleTokenSelector>
@@ -252,7 +261,17 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   networks,
   selectedNetwork,
   onNetworkChange,
+  tokenSelectorOnly, // Add tokenSelectorOnly to dependencies
 ])
+
+  // IF tokenSelectorOnly is true, return only the selector wrapped in proper container
+  if (tokenSelectorOnly) {
+    return (
+      <div className={classNames('relative', className)}>
+        {selector}
+      </div>
+    )
+  }
 
   return (
     <div

@@ -346,7 +346,7 @@ const ChartSpot = () => {
           } flex ${isMobile ? "items-start" : "items-center"} z-10`}
         >
           {/* Token Info */}
-          <div className="flex items-center gap-2 md:gap-4">
+          {/* <div className="flex items-center gap-2 md:gap-4">
             <div
               className={`${
                 isMobile ? "w-8" : isLargeScreen ? "w-12" : "w-12"
@@ -386,7 +386,7 @@ const ChartSpot = () => {
             >
               {token0.name}
             </p>
-          </div>
+          </div> */}
 
           {/* Metrics */}
           <div
@@ -431,7 +431,7 @@ const ChartSpot = () => {
       )}
 
       {/* Chart */}
-      <div className={`w-full h-full ${showInternalHeader ? "pt-16" : "pt-2"}`}>
+      <div className={`w-full h-full ${showInternalHeader ? "pt-8" : "pt-2"}`}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}

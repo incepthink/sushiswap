@@ -1,13 +1,21 @@
+"use client"
+
 // page.tsx - Full screen layout with exact GlowBox styling
 import { SimpleSwapWidget } from 'src/ui/swap/simple/simple-swap-widget'
 import { TokenBalancesCard } from 'src/ui/swap/simple/TokenBalancesCard'
 import ChartSpot, { ChartHeader } from 'src/ui/swap/simple/ChartSpot'
+import TokenSelect from 'src/lib/wagmi/components/token-selector/token-lists/TokenSelect'
 
 export default function SwapSimplePage() {
   return (
-    <div className="min-h-screen w-full px-4 sm:px-6 lg:px-8 py-6 ">
+    <div className="min-h-screen w-full px-4 sm:px-6 lg:px-8 py-6">
+      {/* Token Select Section - Added at the top */}
+      <div className="mb-4 w-full max-w-none">
+            <TokenSelect />
+      </div>
+
       {/* Main Content Area - Chart and Swap Side by Side */}
-      <div className="flex flex-col lg:flex-row gap-6 mb-6 w-full max-w-none">
+      <div className="flex flex-col lg:flex-row gap-4 mb-4 w-full max-w-none">
         {/* Chart Section - Left side, takes more space */}
         <div className="flex-1 lg:flex-[2] order-2 lg:order-1">
           {/* Chart Header - Show on mobile/tablet only */}
@@ -37,9 +45,9 @@ export default function SwapSimplePage() {
       
       {/* Token Balances Card - Full Width with exact GlowBox styling */}
       <div className="w-full">
-          <div className="glow-box h-full w-full !p-4 relative ">
-              <div className="relative h-full w-full z-10">
-          <TokenBalancesCard />
+        <div className="glow-box h-full w-full !p-4 relative">
+          <div className="relative h-full w-full z-10">
+            <TokenBalancesCard />
           </div>
         </div>
       </div>
