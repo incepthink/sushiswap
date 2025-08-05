@@ -149,24 +149,25 @@ export const AMM_SUPPORTED_CHAIN_IDS = SUSHISWAP_SUPPORTED_CHAIN_IDS.filter(
     ) && !DISABLED_CHAIN_IDS.includes(c as (typeof DISABLED_CHAIN_IDS)[number]),
 )
 
-export const SUPPORTED_CHAIN_IDS = Array.from(
-  new Set([
-    ...PREFERRED_CHAINID_ORDER.filter((el) =>
-      CHAIN_IDS.includes(el as (typeof CHAIN_IDS)[number]),
-    ),
-    ...CHAIN_IDS,
-  ]),
-).filter(
-  (
-    c,
-  ): c is Exclude<
-    (typeof CHAIN_IDS)[number],
-    (typeof EVM_TESTNET_CHAIN_IDS)[number] | (typeof DISABLED_CHAIN_IDS)[number]
-  > =>
-    !EVM_TESTNET_CHAIN_IDS.includes(
-      c as (typeof EVM_TESTNET_CHAIN_IDS)[number],
-    ) && !DISABLED_CHAIN_IDS.includes(c as (typeof DISABLED_CHAIN_IDS)[number]),
-)
+// export const SUPPORTED_CHAIN_IDS = Array.from(
+//   new Set([
+//     ...PREFERRED_CHAINID_ORDER.filter((el) =>
+//       CHAIN_IDS.includes(el as (typeof CHAIN_IDS)[number]),
+//     ),
+//     ...CHAIN_IDS,
+//   ]),
+// ).filter(
+//   (
+//     c,
+//   ): c is Exclude<
+//     (typeof CHAIN_IDS)[number],
+//     (typeof EVM_TESTNET_CHAIN_IDS)[number] | (typeof DISABLED_CHAIN_IDS)[number]
+//   > =>
+//     !EVM_TESTNET_CHAIN_IDS.includes(
+//       c as (typeof EVM_TESTNET_CHAIN_IDS)[number],
+//     ) && !DISABLED_CHAIN_IDS.includes(c as (typeof DISABLED_CHAIN_IDS)[number]),
+// )
+export const SUPPORTED_CHAIN_IDS = [ChainId.ETHEREUM, ChainId.KATANA] as const;
 
 export type SupportedChainId = (typeof SUPPORTED_CHAIN_IDS)[number]
 export const isSupportedChainId = (
@@ -182,16 +183,8 @@ const UNSORTED_SUPPORTED_NETWORKS = [
   (c) => !DISABLED_CHAIN_IDS.includes(c as (typeof DISABLED_CHAIN_IDS)[number]),
 )
 
-export const SUPPORTED_NETWORKS = Array.from(
-  new Set([
-    ...PREFERRED_CHAINID_ORDER.filter((el) =>
-      UNSORTED_SUPPORTED_NETWORKS.includes(
-        el as (typeof UNSORTED_SUPPORTED_NETWORKS)[number],
-      ),
-    ),
-    ...UNSORTED_SUPPORTED_NETWORKS,
-  ]),
-)
+export const SUPPORTED_NETWORKS = [ChainId.ETHEREUM, ChainId.KATANA] as const;
+
 
 const UNSORTED_POOL_SUPPORTED_NETWORKS = [
   ...PoolChainIds,

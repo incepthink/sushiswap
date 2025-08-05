@@ -34,6 +34,9 @@ export const HeaderNetworkSelector: FC<{
   const { switchChainAsync } = useSwitchChain()
   const chainId = useChainId()
 
+  console.log("selectedNetwork", selectedNetwork);
+  
+
   const onSwitchNetwork = useCallback<NetworkSelectorOnSelectCallback>(
     async (el, close) => {
       console.debug('onSwitchNetwork', el)

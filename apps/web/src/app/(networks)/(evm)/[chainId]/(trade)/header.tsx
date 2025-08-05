@@ -71,11 +71,13 @@ const navItems = [
 ]
 
 export function GradientConnectButton() {
+  const connectedChainId = useChainId()
+
   return (
     <div className="flex items-center">
       <WagmiHeaderComponents
         networks={SUPPORTED_NETWORKS}
-        selectedNetwork={ChainId.ETHEREUM as EvmChainId}
+        selectedNetwork={connectedChainId as EvmChainId}
         supportedNetworks={SUPPORTED_NETWORKS}
       />
     </div>

@@ -1,5 +1,5 @@
 // hooks/use-fixed-tokens.ts
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { Native, Token, type Type } from 'sushi/currency'
 import type { EvmChainId } from 'sushi/chain'
 import type { Address } from 'viem'
@@ -13,8 +13,29 @@ interface TokenConfig {
   decimals: number
 }
 
+// Katana token list types
+interface KatanaToken {
+  chainId: number
+  address: string
+  name: string
+  symbol: string
+  decimals: number
+  logoURI?: string
+}
+
+interface KatanaTokenList {
+  name: string
+  version: {
+    major: number
+    minor: number
+    patch: number
+  }
+  tokens: KatanaToken[]
+}
+
 // Use specific EVM chain IDs
 const ETHEREUM_CHAIN_ID = 1 as EvmChainId
+const KATANA_CHAIN_ID = 747474 as EvmChainId
 
 // Your fixed token list
 export const TOKENS: TokenConfig[] = [
@@ -61,6 +82,32 @@ export const FIXED_TOKENS_CONFIG: Partial<Record<EvmChainId, TokenConfig[]>> = {
   // Add other chains if needed
 }
 
+// Fetch Katana token list
+async function fetchKatanaTokenList(): Promise<KatanaToken[]> {
+  try {
+    const response = await fetch('https://raw.githubusercontent.com/katana-network/tokenlist/main/tokenlist.json')
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const tokenList: KatanaTokenList = await response.json()
+    return tokenList.tokens.filter(token => token.chainId === KATANA_CHAIN_ID)
+  } catch (error) {
+    console.error('Failed to fetch Katana token list:', error)
+    return []
+  }
+}
+
+// Convert Katana token to TokenConfig format
+function convertKatanaTokenToConfig(katanaToken: KatanaToken): TokenConfig {
+  return {
+    ticker: katanaToken.symbol,
+    img: katanaToken.logoURI || `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${katanaToken.address}/logo.png`,
+    name: katanaToken.name,
+    address: katanaToken.address,
+    decimals: katanaToken.decimals,
+  }
+}
+
 interface UseFixedTokensParams {
   chainId: EvmChainId
   includeNative?: boolean
@@ -83,6 +130,37 @@ export function useFixedTokens({
   includeNative = true 
 }: UseFixedTokensParams): UseFixedTokensReturn {
   
+  const [katanaTokens, setKatanaTokens] = useState<KatanaToken[]>([])
+  const [isLoadingKatana, setIsLoadingKatana] = useState(false)
+  const [katanaError, setKatanaError] = useState(false)
+
+  // Fetch Katana tokens when chainId is Katana
+  useEffect(() => {
+    if (chainId === KATANA_CHAIN_ID) {
+      setIsLoadingKatana(true)
+      setKatanaError(false)
+      
+      fetchKatanaTokenList()
+        .then((tokens) => {
+          setKatanaTokens(tokens)
+          setKatanaError(false)
+        })
+        .catch((error) => {
+          console.error('Error fetching Katana tokens:', error)
+          setKatanaError(true)
+          setKatanaTokens([])
+        })
+        .finally(() => {
+          setIsLoadingKatana(false)
+        })
+    } else {
+      // Reset Katana state for other chains
+      setKatanaTokens([])
+      setIsLoadingKatana(false)
+      setKatanaError(false)
+    }
+  }, [chainId])
+  
   const tokens = useMemo(() => {
     // Check if chainId is valid EVM chain
     if (!isValidEvmChainId(chainId)) {
@@ -90,8 +168,41 @@ export function useFixedTokens({
       return []
     }
 
-    const tokenConfigs = FIXED_TOKENS_CONFIG[chainId] || []
     const tokens: Type[] = []
+    
+    // Handle Katana chain specially
+    if (chainId === KATANA_CHAIN_ID) {
+      // Add native ETH first if requested
+      if (includeNative) {
+        tokens.push(Native.onChain(chainId))
+      }
+      
+      // Add Katana tokens from the fetched list
+      katanaTokens.forEach((katanaToken: KatanaToken) => {
+        try {
+          // Skip if this is the native token placeholder
+          if (katanaToken.address.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") {
+            return
+          }
+          
+          const token = new Token({
+            chainId: chainId,
+            address: katanaToken.address as Address,
+            decimals: katanaToken.decimals,
+            symbol: katanaToken.symbol,
+            name: katanaToken.name,
+          })
+          tokens.push(token)
+        } catch (error) {
+          console.warn('Failed to create Katana token:', katanaToken, error)
+        }
+      })
+      
+      return tokens
+    }
+    
+    // For other chains, use the fixed token config
+    const tokenConfigs = FIXED_TOKENS_CONFIG[chainId] || []
     
     // Add configured tokens
     tokenConfigs.forEach((config: TokenConfig) => {
@@ -118,16 +229,20 @@ export function useFixedTokens({
     })
     
     return tokens
-  }, [chainId, includeNative])
+  }, [chainId, includeNative, katanaTokens])
 
   // Create empty balance map since we're not fetching real balances
   const balanceMap = useMemo(() => new Map(), [])
 
+  // Determine loading and error states
+  const isLoading = chainId === KATANA_CHAIN_ID ? isLoadingKatana : false
+  const isError = chainId === KATANA_CHAIN_ID ? katanaError : false
+
   return {
     tokens,
     balanceMap,
-    isLoading: false,
-    isError: false,
+    isLoading,
+    isError,
   }
 }
 
@@ -138,7 +253,7 @@ export function useFixedTokensWithBalances({
   account
 }: UseFixedTokensParams & { account?: Address }): UseFixedTokensReturn {
   
-  const { tokens } = useFixedTokens({ chainId, includeNative })
+  const { tokens, isLoading, isError } = useFixedTokens({ chainId, includeNative })
   
   // Here you could use your existing balance fetching logic
   // For now, returning empty balances
@@ -147,7 +262,13 @@ export function useFixedTokensWithBalances({
   return {
     tokens,
     balanceMap,
-    isLoading: false,
-    isError: false,
+    isLoading,
+    isError,
   }
+}
+
+// Utility function to get Katana tokens (can be used elsewhere)
+export async function getKatanaTokens(): Promise<TokenConfig[]> {
+  const katanaTokens = await fetchKatanaTokenList()
+  return katanaTokens.map(convertKatanaTokenToConfig)
 }

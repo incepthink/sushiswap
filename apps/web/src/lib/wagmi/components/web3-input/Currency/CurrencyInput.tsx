@@ -112,6 +112,7 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   const { tokenPrice: price, isLoading: isPriceLoading } = usePriceBackend(
   currency?.wrapped?.address,
   undefined,
+  chainId === 1 ? "ethereum" : "katana",
   { 
     enabled: !hidePricing 
   }

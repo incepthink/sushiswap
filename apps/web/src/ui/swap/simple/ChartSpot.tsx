@@ -14,7 +14,7 @@ import { startOfMonth, addMonths, differenceInMonths } from "date-fns";
 import { useDerivedStateSimpleSwap } from './derivedstate-simple-swap-provider'
 import axios from "axios";
 
-export const BACKEND_URL = "https://aggtrade-backend.onrender.com";
+export const BACKEND_URL = "http://localhost:5000";
 
 // Token logo mapping function
 const getTokenLogo = (symbol: string, fallbackUrl?: string) => {

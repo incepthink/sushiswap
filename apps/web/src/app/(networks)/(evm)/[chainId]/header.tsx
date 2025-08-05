@@ -20,7 +20,12 @@ export const Header: FC<HeaderProps> = ({
   supportedNetworks,
 }) => {
   const connectedChainId = useChainId()
+  console.log("connectedChainId", connectedChainId);
+  
   const chainId = _chainId ?? connectedChainId
+
+  console.log("_chainId", _chainId);
+  
 
   return (
     <div className="w-full h-[56px] z-20">

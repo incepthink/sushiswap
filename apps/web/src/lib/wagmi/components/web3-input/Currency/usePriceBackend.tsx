@@ -4,6 +4,9 @@ import axios from 'axios'
 import { Address } from 'viem'
 import { BACKEND_URL } from 'src/ui/swap/simple/ChartSpot'
 
+// Supported chains type
+export type SupportedChain = 'ethereum' | 'katana'
+
 // Types matching your backend response
 export interface PriceResponse {
   status: 'success' | 'error'
@@ -11,6 +14,10 @@ export interface PriceResponse {
     tokenOne: number
     tokenTwo: number
     ratio: number
+    chain: {
+      id: number
+      name: string
+    }
   }
   msg?: string
 }
@@ -28,7 +35,8 @@ export interface UsePriceBackendOptions {
 // Main fetch function
 const fetchTokenPrice = async (
   addressOne: Address, 
-  addressTwo: Address = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2' // Default to WETH for comparison
+  addressTwo: Address = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // Default to WETH for comparison
+  chainId: SupportedChain = 'ethereum'
 ): Promise<PriceResponse['data']> => {
   try {
     const { data } = await axios.get<PriceResponse>(
@@ -36,7 +44,8 @@ const fetchTokenPrice = async (
       {
         params: { 
           addressOne,
-          addressTwo
+          addressTwo,
+          chainId
         },
         timeout: 10000, // 10 second timeout
       }
@@ -65,6 +74,7 @@ const fetchTokenPrice = async (
 export function usePriceBackend(
   address: Address | undefined,
   compareToAddress?: Address,
+  chainId: SupportedChain = 'ethereum',
   options: UsePriceBackendOptions = {}
 ) {
   const {
@@ -77,11 +87,11 @@ export function usePriceBackend(
   const defaultCompareAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2' // WETH
   const addressTwo = compareToAddress || defaultCompareAddress
 
-  const queryKey = ['tokenPrice', address, addressTwo]
+  const queryKey = ['tokenPrice', address, addressTwo, chainId]
 
   const query = useQuery({
     queryKey,
-    queryFn: () => fetchTokenPrice(address!, addressTwo),
+    queryFn: () => fetchTokenPrice(address!, addressTwo, chainId),
     enabled: Boolean(enabled && address),
     staleTime,
     gcTime: 5 * 60 * 1000, // 5 minutes cache time
@@ -105,6 +115,11 @@ export function usePriceBackend(
     tokenPrice: query.data?.tokenOne, // Main token price
     compareTokenPrice: query.data?.tokenTwo, // Comparison token price
     ratio: query.data?.ratio, // tokenOne / tokenTwo ratio
+    
+    // Chain info
+    chain: query.data?.chain,
+    chainId: query.data?.chain?.id,
+    chainName: query.data?.chain?.name,
     
     // Convenience getters
     tokenOnePrice: query.data?.tokenOne,
@@ -132,6 +147,7 @@ export function usePriceBackend(
 export function usePriceComparison(
   addressOne: Address | undefined,
   addressTwo: Address | undefined,
+  chainId: SupportedChain = 'ethereum',
   options: UsePriceBackendOptions = {}
 ) {
   const {
@@ -141,11 +157,11 @@ export function usePriceComparison(
     retry = 2
   } = options
 
-  const queryKey = ['tokenComparison', addressOne, addressTwo]
+  const queryKey = ['tokenComparison', addressOne, addressTwo, chainId]
 
   const query = useQuery({
     queryKey,
-    queryFn: () => fetchTokenPrice(addressOne!, addressTwo!),
+    queryFn: () => fetchTokenPrice(addressOne!, addressTwo!, chainId),
     enabled: Boolean(enabled && addressOne && addressTwo),
     staleTime,
     gcTime: 5 * 60 * 1000,
@@ -169,6 +185,11 @@ export function usePriceComparison(
     tokenTwoPrice: query.data?.tokenTwo,
     ratio: query.data?.ratio,
     inverseRatio: query.data?.ratio ? 1 / query.data.ratio : undefined,
+    
+    // Chain info
+    chain: query.data?.chain,
+    chainId: query.data?.chain?.id,
+    chainName: query.data?.chain?.name,
     
     // Comparison helpers
     tokenOneIsHigher: query.data ? query.data.tokenOne > query.data.tokenTwo : undefined,
@@ -194,14 +215,15 @@ export function usePriceBackendManual() {
 
   const fetchPrice = async (
     addressOne: Address, 
-    addressTwo: Address = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+    addressTwo: Address = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    chainId: SupportedChain = 'ethereum'
   ) => {
     try {
-      const data = await fetchTokenPrice(addressOne, addressTwo)
+      const data = await fetchTokenPrice(addressOne, addressTwo, chainId)
       
       // Update the cache
       queryClient.setQueryData(
-        ['tokenPrice', addressOne, addressTwo],
+        ['tokenPrice', addressOne, addressTwo, chainId],
         data
       )
       
@@ -219,17 +241,28 @@ export function usePriceBackendManual() {
         queryKey: ['tokenPrice']
       })
     },
+    // Helper to invalidate prices for specific chain
+    invalidateChainPrices: (chainId: SupportedChain) => {
+      queryClient.invalidateQueries({
+        queryKey: ['tokenPrice'],
+        predicate: (query) => query.queryKey[3] === chainId
+      })
+    },
     // Helper to get cached price data
-    getCachedPrice: (addressOne: Address, addressTwo?: Address) => {
+    getCachedPrice: (addressOne: Address, addressTwo?: Address, chainId: SupportedChain = 'ethereum') => {
       const compareAddress = addressTwo || '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
-      return queryClient.getQueryData(['tokenPrice', addressOne, compareAddress])
+      return queryClient.getQueryData(['tokenPrice', addressOne, compareAddress, chainId])
     }
   }
 }
 
 // Hook for batch price fetching
 export function useBatchPriceBackend(
-  tokenPairs: Array<{ addressOne: Address; addressTwo?: Address }>,
+  tokenPairs: Array<{ 
+    addressOne: Address
+    addressTwo?: Address
+    chainId?: SupportedChain 
+  }>,
   options: UsePriceBackendOptions = {}
 ) {
   const {
@@ -245,8 +278,12 @@ export function useBatchPriceBackend(
 
   const fetchBatchPrices = async () => {
     const results = await Promise.allSettled(
-      tokenPairs.map(({ addressOne, addressTwo }) =>
-        fetchTokenPrice(addressOne, addressTwo || defaultCompareAddress)
+      tokenPairs.map(({ addressOne, addressTwo, chainId }) =>
+        fetchTokenPrice(
+          addressOne, 
+          addressTwo || defaultCompareAddress,
+          chainId || 'ethereum'
+        )
       )
     )
 
@@ -276,6 +313,74 @@ export function useBatchPriceBackend(
     isFetching: query.isFetching,
     error: query.error,
     refetch: query.refetch,
+    
+    // Helper to get successful results only
+    successfulResults: query.data?.filter(result => result.success) || [],
+    
+    // Helper to get failed results
+    failedResults: query.data?.filter(result => !result.success) || [],
+    
+    // Helper to group results by chain
+    resultsByChain: query.data?.reduce((acc, result) => {
+      const chainId = result.pair.chainId || 'ethereum'
+      if (!acc[chainId]) acc[chainId] = []
+      acc[chainId].push(result)
+      return acc
+    }, {} as Record<SupportedChain, typeof query.data>) || {},
+  }
+}
+
+// Hook for multi-chain token comparison
+export function useMultiChainPriceComparison(
+  address: Address | undefined,
+  compareToAddress?: Address,
+  chains: SupportedChain[] = ['ethereum', 'katana'],
+  options: UsePriceBackendOptions = {}
+) {
+  const tokenPairs = chains.map(chainId => ({
+    addressOne: address!,
+    addressTwo: compareToAddress,
+    chainId
+  }))
+
+  const batchQuery = useBatchPriceBackend(
+    address ? tokenPairs : [],
+    options
+  )
+
+  return {
+    ...batchQuery,
+    
+    // Helper to get price on specific chain
+    getPriceOnChain: (chainId: SupportedChain) => {
+      return batchQuery.data?.find(result => result.pair.chainId === chainId)?.data
+    },
+    
+    // Helper to compare prices across chains
+    priceComparison: batchQuery.data?.reduce((acc, result) => {
+      if (result.success && result.data && result.pair.chainId) {
+        acc[result.pair.chainId] = {
+          tokenPrice: result.data.tokenOne,
+          chain: result.data.chain,
+          ratio: result.data.ratio
+        }
+      }
+      return acc
+    }, {} as Record<SupportedChain, { tokenPrice: number; chain: { id: number; name: string }; ratio: number }>),
+    
+    // Helper to find best price across chains
+    bestPrice: batchQuery.data?.reduce((best, result) => {
+      if (result.success && result.data) {
+        if (!best || result.data.tokenOne > best.price) {
+          return {
+            price: result.data.tokenOne,
+            chain: result.data.chain,
+            chainId: result.pair.chainId || 'ethereum'
+          }
+        }
+      }
+      return best
+    }, null as { price: number; chain: { id: number; name: string }; chainId: SupportedChain } | null),
   }
 }
 
@@ -312,9 +417,56 @@ export function usePriceFormatter() {
     return `${sign}${change.toFixed(2)}%`
   }
 
+  // Format chain-specific prices
+  const formatChainPrice = (price: number | undefined, chainName: string, decimals = 2) => {
+    const formattedPrice = formatPrice(price, decimals)
+    return `${formattedPrice} (${chainName})`
+  }
+
   return {
     formatPrice,
     formatRatio,
     formatPercentageChange,
+    formatChainPrice,
+  }
+}
+
+// Hook for chain-aware price caching
+export function useChainPriceCache() {
+  const queryClient = useQueryClient()
+
+  const prefetchPrice = (
+    addressOne: Address, 
+    addressTwo: Address = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    chainId: SupportedChain = 'ethereum'
+  ) => {
+    return queryClient.prefetchQuery({
+      queryKey: ['tokenPrice', addressOne, addressTwo, chainId],
+      queryFn: () => fetchTokenPrice(addressOne, addressTwo, chainId),
+      staleTime: 15000,
+    })
+  }
+
+  const warmupPricesForChain = async (
+    tokenAddresses: Address[],
+    chainId: SupportedChain,
+    compareToAddress: Address = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+  ) => {
+    const prefetchPromises = tokenAddresses.map(address =>
+      prefetchPrice(address, compareToAddress, chainId)
+    )
+    
+    await Promise.allSettled(prefetchPromises)
+  }
+
+  return {
+    prefetchPrice,
+    warmupPricesForChain,
+    clearChainCache: (chainId: SupportedChain) => {
+      queryClient.removeQueries({
+        queryKey: ['tokenPrice'],
+        predicate: (query) => query.queryKey[3] === chainId
+      })
+    }
   }
 }
