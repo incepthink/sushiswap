@@ -28,7 +28,7 @@ export const CrossChainSwapToken1Input = () => {
       id="swap-to"
       type="OUTPUT"
       disabled
-      className="border border-accent p-3 bg-white dark:bg-slate-800 rounded-xl"
+      className="border-[2px] border-[#00FFE9] p-3 rounded-xl"
       value={route?.amountOut?.toSignificant() ?? ''}
       chainId={chainId1}
       onSelect={setToken1}

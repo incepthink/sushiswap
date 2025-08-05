@@ -11,13 +11,13 @@ import { TwapTradeButton } from './twap-trade-button'
 
 export const DCAWidget = () => {
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6 bg-[rgba(255,255,255,0.8)] dark:bg-[rgba(25,32,49,0.8)] rounded-3xl backdrop-blur-2xl">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 p-4 md:p-6 dark:bg-transparent rounded-3xl backdrop-blur-2xl">
+      <div className="w-full">
         <SwapModeButtons />
       </div>
       <TwapMaintenanceMessage />
       <div className="flex flex-col gap-2">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-8">
           <TwapToken0Input />
           <TwapSwitchTokensButton />
           <DCAToken1Input />
@@ -26,7 +26,6 @@ export const DCAWidget = () => {
         <TwapTradeButton />
       </div>
       <TwapOrdersDialogTriggerButton />
-      <OrbsBanner />
       <SimpleSwapTokenNotFoundDialog />
     </div>
   )

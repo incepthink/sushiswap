@@ -26,7 +26,7 @@ import {
 
 export const DCAOptionsInput = () => {
   return (
-    <div className="flex flex-wrap gap-3 pb-2">
+    <div className="flex flex-wrap gap-3 pb-2 mt-2">
       <DCATradesInput />
       <DCAIntervalInput />
     </div>
@@ -56,7 +56,7 @@ const DCATradesInput = () => {
   }, [amountInPerChunk, token0PriceUSD])
 
   return (
-    <div className="flex-1 flex flex-col gap-1 whitespace-nowrap">
+    <div className="flex-1 flex flex-col gap-1 whitespace-nowrap ">
       <div className="flex justify-between items-center">
         <span className="text-sm text-muted-foreground">Over</span>
         <Explainer>
@@ -68,7 +68,7 @@ const DCATradesInput = () => {
       <div
         className={classNames(
           minTradeSizeError ? '!bg-red-500/20 !dark:bg-red-900/30' : '',
-          'px-3 py-4 overflow-hidden border border-accent bg-white dark:bg-slate-800 rounded-xl',
+          'px-3 py-4 overflow-hidden border border-[#00FFE9] rounded-xl',
         )}
       >
         <TextField
@@ -78,7 +78,7 @@ const DCATradesInput = () => {
           maxDecimals={0}
           onValueChange={onChange}
           value={chunks}
-          className={'!h-[20px] !min-h-[5px] !px-0 !py-1 !text-lg font-medium'}
+          className={'!h-[20px] !min-h-[5px] !px-0 !py-1 !text-lg font-medium '}
         />
       </div>
       {!isLoading ? (
@@ -154,7 +154,7 @@ const DCAIntervalInput = () => {
           minFillDelayError || maxFillDelayError
             ? '!bg-red-500/20 !dark:bg-red-900/30'
             : '',
-          'px-3 py-2 overflow-hidden border border-accent bg-white dark:bg-slate-800 rounded-xl flex justify-between items-center',
+          'px-3 py-2 overflow-hidden border border-[#00FFE9] rounded-xl flex justify-between items-center',
         )}
       >
         <TextField

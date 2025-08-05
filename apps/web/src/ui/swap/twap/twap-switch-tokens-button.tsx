@@ -16,7 +16,10 @@ export const TwapSwitchTokensButton = () => {
   } = useDerivedStateTwap()
 
   return (
-    <div className="left-0 right-0 mt-[-26px] mb-[-26px] flex items-center justify-center">
+    <div className="left-0 right-0 mt-[-20px] mb-[-20px] flex items-center justify-center relative">
+      {/* Left divider */}
+      <div className="flex-1 h-px bg-gray-600"></div>
+      
       <TraceEvent
         events={[BrowserEvent.onClick]}
         name={SwapEventName.SWAP_TOKENS_REVERSED}
@@ -25,13 +28,16 @@ export const TwapSwitchTokensButton = () => {
         <button
           onClick={switchTokens}
           type="button"
-          className="hover:shadow-sm transition-border z-10 group bg-background p-2 border border-accent transition-all rounded-full cursor-pointer"
+          className="hover:shadow-sm transition-border z-10 group p-2 bg-[#00F5E0] transition-all rounded-full cursor-pointer mx-4"
         >
           <div className="transition-transform rotate-0 group-hover:rotate-180">
-            <ArrowsUpDownIcon strokeWidth={3} className="w-3 h-3 text-blue" />
+            <ArrowsUpDownIcon strokeWidth={3} className="w-5 h-5 text-black" />
           </div>
         </button>
       </TraceEvent>
+
+      {/* Right divider */}
+      <div className="flex-1 h-px bg-gray-600"></div>
     </div>
   )
 }

@@ -63,7 +63,7 @@ export const DCAToken1Input = () => {
   return (
     <div
       className={
-        'relative space-y-2 overflow-hidden border border-accent p-3 bg-white dark:bg-slate-800 rounded-xl'
+        'relative space-y-2 overflow-hidden border border-[#00FFE9] p-3 rounded-xl'
       }
     >
       <span className="text-sm text-muted-foreground">You're buying</span>

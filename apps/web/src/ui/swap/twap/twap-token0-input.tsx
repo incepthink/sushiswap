@@ -22,7 +22,7 @@ export const TwapToken0Input = () => {
       id="swap-from"
       type="INPUT"
       className={classNames(
-        'border border-accent p-3 bg-white dark:bg-slate-800 rounded-xl',
+        'border border-[#00FFE9] p-3  rounded-xl',
         minTradeSizeError ? '!bg-red-500/20 !dark:bg-red-900/30' : '',
       )}
       chainId={chainId}

@@ -144,7 +144,7 @@ export const LimitPriceInput = () => {
     <div
       className={classNames(
         // error ? '!bg-red-500/20 !dark:bg-red-900/30' : '',
-        'relative overflow-hidden border border-accent bg-white dark:bg-slate-800 rounded-xl',
+        'relative overflow-hidden border border-[#00FFE9] rounded-xl mb-1',
       )}
     >
       <div className="flex justify-between items-center border-b border-accent p-3">
@@ -222,7 +222,7 @@ export const LimitPriceInput = () => {
               <Toggle
                 disabled={isLoading}
                 variant="outline"
-                className="whitespace-nowrap !rounded-[50px] !px-4 !h-7 relative"
+                className="whitespace-nowrap !rounded-[50px] !px-4 !h-7 relative "
                 onClick={() => setPriceOptionIndex(i)}
                 pressed={
                   i === priceOptionIndex ||

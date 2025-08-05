@@ -1,3 +1,4 @@
+import CommonSwapLayout from 'src/lib/wagmi/components/CommonSwapLayout'
 import { SwapModeButtons } from '../swap-mode-buttons'
 import { CrossChainSwapHeader } from './cross-chain-swap-header'
 import { CrossChainSwapMaintenanceMessage } from './cross-chain-swap-maintenance-message'
@@ -11,20 +12,27 @@ import { CrossChainSwapTradeStats } from './cross-chain-swap-trade-stats'
 
 export const CrossChainSwapWidget = () => {
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6 bg-[rgba(255,255,255,0.8)] dark:bg-[rgba(25,32,49,0.8)] rounded-3xl backdrop-blur-2xl">
-      <div className="flex items-center justify-between">
-        <SwapModeButtons />
-        <CrossChainSwapSettingsOverlay />
-      </div>
+    // <CommonSwapLayout>
+    <div className="flex flex-col gap-4 p-4 md:p-6 dark:bg-transparent rounded-3xl backdrop-blur-2xl">
+      <div className=" w-full">
+                
+                <SwapModeButtons />
+                
+              </div>
+              <div className='flex justify-between items-center pl-0.5'>
+      <p className='text-xl'>Cross-Chain Swap</p>
+      <CrossChainSwapSettingsOverlay />
+              </div>
       <CrossChainSwapMaintenanceMessage />
       <CrossChainSwapToken0Input />
       <CrossChainSwapSwitchTokensButton />
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-4">
         <CrossChainSwapToken1Input />
         <CrossChainSwapTradeButton />
         <CrossChainSwapTradeStats />
       </div>
       <CrossChainSwapTokenNotFoundDialog />
     </div>
+    // </CommonSwapLayout>
   )
 }

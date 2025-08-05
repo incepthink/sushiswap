@@ -11,7 +11,6 @@ import {
   YAxis,
 } from "recharts";
 import { startOfMonth, addMonths, differenceInMonths } from "date-fns";
-import { useDerivedStateSimpleSwap } from './derivedstate-simple-swap-provider'
 import axios from "axios";
 
 export const BACKEND_URL = "http://localhost:5000";
@@ -112,15 +111,15 @@ const useMediaQuery = (query: string) => {
   return matches;
 };
 
-// Separate Chart Header Component
-export const ChartHeader = () => {
+// Chart Header Component with token0 prop
+interface ChartHeaderProps {
+  token0?: any;
+}
+
+export const ChartHeader: React.FC<ChartHeaderProps> = ({ token0 }) => {
   const isMobile = useMediaQuery('(max-width: 640px)');
   const isTablet = useMediaQuery('(max-width: 768px)');
   const isLargeScreen = useMediaQuery('(min-width: 1280px)');
-
-  const {
-    state: { token0 },
-  } = useDerivedStateSimpleSwap();
 
   const [fdv, setFdv] = useState(0);
   const [vol, setVol] = useState(0);
@@ -243,16 +242,16 @@ export const ChartHeader = () => {
   );
 };
 
-// Clean Chart Component with conditional header
-const ChartSpot = () => {
+// Chart Component with token0 prop
+interface ChartSpotProps {
+  token0?: any;
+}
+
+const ChartSpot: React.FC<ChartSpotProps> = ({ token0 }) => {
   const isMobile = useMediaQuery('(max-width: 640px)');
   const isTablet = useMediaQuery('(max-width: 768px)');
   const isLargeScreen = useMediaQuery('(min-width: 1280px)');
   const showInternalHeader = useMediaQuery('(min-width: 768px)'); // Show header inside on medium screens and up
-
-  const {
-    state: { token0 },
-  } = useDerivedStateSimpleSwap();
 
   const [chartData, setChartData] = useState<any>([]);
   const [fdv, setFdv] = useState(0);
@@ -345,49 +344,6 @@ const ChartSpot = () => {
               : "flex justify-between"
           } flex ${isMobile ? "items-start" : "items-center"} z-10`}
         >
-          {/* Token Info */}
-          {/* <div className="flex items-center gap-2 md:gap-4">
-            <div
-              className={`${
-                isMobile ? "w-8" : isLargeScreen ? "w-12" : "w-12"
-              } rounded-full overflow-hidden flex-shrink-0 bg-gray-700`}
-            >
-              {tokenLogo ? (
-                <img
-                  src={tokenLogo}
-                  alt={token0.symbol}
-                  className="w-full object-cover"
-                  onError={(e) => {
-                    // Fallback to first letter if image fails to load
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const fallback = target.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.style.display = 'flex';
-                  }}
-                />
-              ) : null}
-              <div 
-                className="w-full h-full flex items-center justify-center text-white font-bold"
-                style={{ display: tokenLogo ? 'none' : 'flex' }}
-              >
-                {token0.symbol?.charAt(0)}
-              </div>
-            </div>
-            <p
-              className={`${
-                isMobile
-                  ? "text-lg"
-                  : isTablet
-                  ? "text-xl"
-                  : isLargeScreen
-                  ? "text-2xl"
-                  : "text-2xl"
-              } font-semibold truncate text-white`}
-            >
-              {token0.name}
-            </p>
-          </div> */}
-
           {/* Metrics */}
           <div
             className={`flex ${

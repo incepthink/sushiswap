@@ -25,8 +25,24 @@ export default async function CrossChainSwapLayout(props: {
 
   return (
     <Providers chainId={chainId}>
+      <div className="fixed inset-0 -z-9 overflow-hidden">
+              {/* <video
+                className="w-full h-full object-cover"
+                src="/assets/home.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+              /> */}
+              <img
+                src="/assets/ellipse-home.png"
+                className="w-full h-full object-cover"
+                alt=""
+              />
+            </div>
       <Header chainId={chainId} supportedNetworks={XSWAP_SUPPORTED_CHAIN_IDS} />
-      <main className="lg:p-4 mt-16 mb-[86px] h-[clamp(600px,_calc(100vh_-_280px),_800px)]">
+      <main className="lg:p-4 mb-[86px] h-[clamp(600px,_calc(100vh_-_280px),_800px)]">
         {children}
       </main>
     </Providers>

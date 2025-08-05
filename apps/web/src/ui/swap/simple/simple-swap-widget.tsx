@@ -13,9 +13,14 @@ export const SimpleSwapWidget = () => {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-[17px] p-4 md:p-6 dark:bg-transparent rounded-3xl">
-        <div className="flex items-center justify-between">
-          <p className='text-xl'>Swap</p>
-          <SimpleSwapSettingsOverlay />
+        <div className=" w-full">
+          
+          <SwapModeButtons />
+          
+        </div>
+        <div className='flex justify-between items-center pl-0.5'>
+<p className='text-xl'>Swap</p>
+<SimpleSwapSettingsOverlay />
         </div>
         <SwapMaintenanceMessage />
         <div className="flex flex-col gap-10">
