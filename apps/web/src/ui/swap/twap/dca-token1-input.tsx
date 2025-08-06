@@ -8,11 +8,11 @@ import {
   classNames,
 } from '@sushiswap/ui'
 import { useMemo } from 'react'
-import { TokenSelector } from 'src/lib/wagmi/components/token-selector/token-selector'
 import { BalancePanel } from 'src/lib/wagmi/components/web3-input/Currency/BalancePanel'
 import { useAccount } from 'wagmi'
 import { useAmountBalance } from '~evm/_common/ui/balance-provider/use-balance'
 import { useDerivedStateTwap } from './derivedstate-twap-provider'
+import { SimpleTokenSelector } from 'src/lib/wagmi/components/token-selector/token-lists/SimpleTokenSelector'
 
 export const DCAToken1Input = () => {
   const {
@@ -27,7 +27,7 @@ export const DCAToken1Input = () => {
 
   const selector = useMemo(() => {
     return (
-      <TokenSelector selected={token} chainId={chainId} onSelect={onSelect}>
+      <SimpleTokenSelector selected={token} chainId={chainId} onSelect={onSelect}>
         <Button
           data-state={isTokenLoading ? 'inactive' : 'active'}
           size="lg"
@@ -56,7 +56,7 @@ export const DCAToken1Input = () => {
             'Select token'
           )}
         </Button>
-      </TokenSelector>
+      </SimpleTokenSelector>
     )
   }, [isTokenLoading, onSelect, token, chainId])
 

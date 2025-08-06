@@ -42,6 +42,7 @@ export const CrossChainSwapToken1Input = () => {
       networks={networks}
       selectedNetwork={chainId1}
       onNetworkChange={setChainId1}
+      crossChain={true}
     />
   )
 }

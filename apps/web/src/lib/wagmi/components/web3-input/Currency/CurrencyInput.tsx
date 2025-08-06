@@ -62,6 +62,7 @@ interface CurrencyInputProps {
   selectedNetwork?: EvmChainId
   onNetworkChange?: (network: number) => void
   tokenSelectorOnly?: boolean  // NEW PROP
+  crossChain?: boolean
 }
 
 const CurrencyInput: FC<CurrencyInputProps> = ({
@@ -93,6 +94,7 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   selectedNetwork,
   onNetworkChange,
   tokenSelectorOnly = false,  // NEW PROP
+  crossChain= false,
 }) => {
   const isMounted = useIsMounted()
 
@@ -177,6 +179,8 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
       chainId={chainId}
       onSelect={onSelect}
       includeNative={allowNative}
+      crossChain={crossChain}
+      onNetworkChange={onNetworkChange}
     >
       <Button
         data-state={currencyLoading ? 'inactive' : 'active'}

@@ -13,7 +13,7 @@ import {
 import { startOfMonth, addMonths, differenceInMonths } from "date-fns";
 import axios from "axios";
 
-export const BACKEND_URL = "http://localhost:5000";
+export const BACKEND_URL = "https://aggtrade-backend.onrender.com";
 
 // Token logo mapping function
 const getTokenLogo = (symbol: string, fallbackUrl?: string) => {
@@ -314,6 +314,12 @@ const ChartSpot: React.FC<ChartSpotProps> = ({ token0 }) => {
     }
   }, [token0]);
 
+  return (
+    <div className="w-full h-full flex justify-center items-center">
+      <p className="text-4xl">Coming Soon...</p>
+    </div>
+  )
+
   if (isLoading || chartData.length === 0) {
     return (
       <div className="w-full h-full flex justify-center items-center">
@@ -324,6 +330,8 @@ const ChartSpot: React.FC<ChartSpotProps> = ({ token0 }) => {
 
   // Get the appropriate logo for the token
   const tokenLogo = getTokenLogo(token0!.symbol!, token0!.logoUrl);
+
+  
 
   return (
     <div className="w-full h-full relative dot-pattern-cyan">
