@@ -81,7 +81,7 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
   
   
   // Choose which token source to use
-  const { tokens: rawTokens, isLoading, isError } = crossChain ? backendTokensResult : fixedTokensResult
+  const { tokens: rawTokens, isLoading, isError } = backendTokensResult
 
   // Sort tokens with priority tokens first
   const tokens = useMemo(() => {
