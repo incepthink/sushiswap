@@ -77,6 +77,8 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
   })
   
   const backendTokensResult = useTokensBackend(selectedChainId)
+  console.log("backendTokensResult", backendTokensResult);
+  
   
   // Choose which token source to use
   const { tokens: rawTokens, isLoading, isError } = crossChain ? backendTokensResult : fixedTokensResult

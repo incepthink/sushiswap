@@ -53,6 +53,7 @@ export function useTokensBackend(chainId: EvmChainId) {
           const response = await axios.get<KatanaTokenListResponse>(
             'https://raw.githubusercontent.com/katana-network/tokenlist/main/tokenlist.json'
           )
+          
 
           tokensData = response.data.tokens
             .filter(token => token.chainId === chainId)
@@ -70,6 +71,7 @@ export function useTokensBackend(chainId: EvmChainId) {
                 name: token.name,
                 symbol: token.symbol,
                 decimals: token.decimals,
+                logoUrl: token.logoURI
               })
             })
         } else {
@@ -96,6 +98,7 @@ export function useTokensBackend(chainId: EvmChainId) {
               name: token.name,
               symbol: token.symbol,
               decimals: token.decimals,
+              logoUrl: token.logoURI
             })
           })
         }
