@@ -67,7 +67,7 @@ export const SwapModeButtons = () => {
     },
     {
       id: 'cross-chain',
-      label: 'Cross-Chain',
+      label: 'Bridge',
       icon: <ShuffleIcon width={16} height={16} className="text-current" />,
       description: 'Swap tokens across 15+ different blockchain networks',
       path: `/${ChainKey[chainId]}/cross-chain-swap`,
@@ -85,7 +85,7 @@ export const SwapModeButtons = () => {
     const isActive = activeTab === tab.id
     const buttonContent = (
       <button
-        className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+        className={`w-full flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${
           isActive
             ? "bg-[#00F5E0] text-black shadow-lg"
             : tab.isSupported
