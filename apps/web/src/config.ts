@@ -167,7 +167,7 @@ export const AMM_SUPPORTED_CHAIN_IDS = SUSHISWAP_SUPPORTED_CHAIN_IDS.filter(
 //       c as (typeof EVM_TESTNET_CHAIN_IDS)[number],
 //     ) && !DISABLED_CHAIN_IDS.includes(c as (typeof DISABLED_CHAIN_IDS)[number]),
 // )
-export const SUPPORTED_CHAIN_IDS = [ChainId.ETHEREUM, ChainId.KATANA, ChainId.POLYGON, ChainId.ARBITRUM, ChainId.BSC, ChainId.ARBITRUM, ChainId.OPTIMISM] as const;
+export const SUPPORTED_CHAIN_IDS = [ChainId.ETHEREUM, ChainId.KATANA, ChainId.POLYGON, ChainId.ARBITRUM, ChainId.BSC, ChainId.OPTIMISM] as const;
 
 export type SupportedChainId = (typeof SUPPORTED_CHAIN_IDS)[number]
 export const isSupportedChainId = (
@@ -183,7 +183,7 @@ const UNSORTED_SUPPORTED_NETWORKS = [
   (c) => !DISABLED_CHAIN_IDS.includes(c as (typeof DISABLED_CHAIN_IDS)[number]),
 )
 
-export const SUPPORTED_NETWORKS = [ChainId.ETHEREUM, ChainId.KATANA, ChainId.POLYGON, ChainId.ARBITRUM, ChainId.BSC, ChainId.ARBITRUM, ChainId.OPTIMISM] as const;
+export const SUPPORTED_NETWORKS = [ChainId.ETHEREUM, ChainId.KATANA, ChainId.POLYGON, ChainId.ARBITRUM, ChainId.BSC, ChainId.OPTIMISM] as const;
 
 
 const UNSORTED_POOL_SUPPORTED_NETWORKS = [

@@ -20,9 +20,13 @@ import {
   ListItemText,
   Avatar,
   Alert,
-  Chip
+  Chip,
+  TextField,
+  InputAdornment,
+  Tabs,
+  Tab
 } from '@mui/material'
-import { Close as CloseIcon } from '@mui/icons-material'
+import { Close as CloseIcon, Search as SearchIcon } from '@mui/icons-material'
 import { Currency } from '@sushiswap/ui'
 import type { EvmChainId } from 'sushi/chain'
 import type { Type } from 'sushi/currency'
@@ -63,6 +67,8 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
 }) => {
   const [open, setOpen] = useState(false)
   const [selectedChainId, setSelectedChainId] = useState<EvmChainId>(chainId)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [activeTab, setActiveTab] = useState<"popular" | "all">("popular")
 
   useEffect(() => {
     if (onNetworkChange) {
@@ -83,8 +89,29 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
   // Choose which token source to use
   const { tokens: rawTokens, isLoading, isError } = backendTokensResult
 
-  // Sort tokens with priority tokens first
-  const tokens = useMemo(() => {
+  // Get priority tokens (popular tokens)
+  const priorityTokens = useMemo(() => {
+    if (!rawTokens || rawTokens.length === 0) return []
+    
+    const priority: Type[] = []
+    rawTokens.forEach(token => {
+      if (PRIORITY_TOKENS.includes(token.symbol?.toUpperCase() || '')) {
+        priority.push(token)
+      }
+    })
+    
+    // Sort priority tokens by their order in PRIORITY_TOKENS array
+    priority.sort((a, b) => {
+      const aIndex = PRIORITY_TOKENS.indexOf(a.symbol?.toUpperCase() || '')
+      const bIndex = PRIORITY_TOKENS.indexOf(b.symbol?.toUpperCase() || '')
+      return aIndex - bIndex
+    })
+    
+    return priority
+  }, [rawTokens])
+
+  // Sort all tokens with priority tokens first
+  const allTokens = useMemo(() => {
     if (!rawTokens || rawTokens.length === 0) return []
     
     const priorityTokens: Type[] = []
@@ -111,11 +138,28 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
     return [...priorityTokens, ...regularTokens]
   }, [rawTokens])
 
+  // Determine which tokens to show based on active tab
+  const tokensToShow = useMemo(() => {
+    return activeTab === "popular" ? priorityTokens : allTokens
+  }, [activeTab, priorityTokens, allTokens])
+
+  // Filter tokens based on search query
+  const filteredTokens = useMemo(() => {
+    if (!searchQuery.trim()) return tokensToShow
+    
+    const query = searchQuery.toLowerCase()
+    return tokensToShow.filter(token =>
+      token.symbol?.toLowerCase().includes(query) ||
+      token.name?.toLowerCase().includes(query)
+    )
+  }, [tokensToShow, searchQuery])
+
   const handleSelect = useCallback(
     (currency: Type) => {
       console.log('SimpleTokenSelector: Selecting token', currency.symbol)
       onSelect(currency)
       setOpen(false)
+      setSearchQuery("") // Reset search on close
     },
     [onSelect],
   )
@@ -129,11 +173,19 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
 
   const handleClose = useCallback(() => {
     setOpen(false)
+    setSearchQuery("") // Reset search on close
+  }, [])
+
+  const handleTabChange = useCallback((
+    event: React.SyntheticEvent,
+    newValue: "popular" | "all"
+  ) => {
+    setActiveTab(newValue)
   }, [])
 
   // Check if selected token exists in our tokens list
   const isSelectedTokenAvailable = selected ? 
-    tokens.some(token => token.id === selected.id) : 
+    allTokens.some(token => token.id === selected.id) : 
     true
 
   if (isError) {
@@ -160,7 +212,9 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
             backdropFilter: 'blur(20px)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             borderRadius: 2,
-            color: 'white'
+            color: 'white',
+            minHeight: '600px',
+            maxHeight: '80vh'
           }
         }}
       >
@@ -169,81 +223,192 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
           justifyContent: 'space-between', 
           alignItems: 'center',
           color: 'white',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          py: 2
         }}>
-          <Typography variant="h6" component="div">
+          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
             Select a token
           </Typography>
           <IconButton 
             onClick={handleClose}
-            sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              }
+            }}
           >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         
-        <DialogContent sx={{ p: 3 }}>
-          {/* Chain Selector - only show in cross-chain mode */}
-          {crossChain && (
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                Network
-              </InputLabel>
-              <Select
-                value={selectedChainId}
-                label="Network"
-                onChange={(e) => handleChainSelect(Number(e.target.value) as EvmChainId)}
-                sx={{
+        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Chain Selector - only show in cross-chain mode */}
+            {crossChain && (
+              <FormControl fullWidth>
+                <InputLabel sx={{ 
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  '&.Mui-focused': {
+                    color: '#00F5E0',
+                  }
+                }}>
+                  Network
+                </InputLabel>
+                <Select
+                  value={selectedChainId}
+                  label="Network"
+                  onChange={(e) => handleChainSelect(Number(e.target.value) as EvmChainId)}
+                  sx={{
+                    color: 'white',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#00F5E0',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#00F5E0',
+                    },
+                    '& .MuiSelect-icon': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                    }
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        bgcolor: 'rgba(30, 41, 59, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        '& .MuiMenuItem-root': {
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: 'rgba(0, 245, 224, 0.1)',
+                          },
+                          '&.Mui-selected': {
+                            backgroundColor: 'rgba(0, 245, 224, 0.2)',
+                          },
+                        }
+                      }
+                    }
+                  }}
+                >
+                  {CHAIN_OPTIONS.map((chain) => (
+                    <MenuItem 
+                      key={chain.id} 
+                      value={chain.id}
+                    >
+                      {chain.name} ({chain.symbol})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
+            {/* Search Input */}
+            <TextField
+              fullWidth
+              placeholder="Search by name or symbol"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              variant="outlined"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+                  </InputAdornment>
+                ),
+                sx: {
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
                   color: 'white',
                   '& .MuiOutlinedInput-notchedOutline': {
                     borderColor: 'rgba(255, 255, 255, 0.3)',
                   },
                   '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#00F5E0',
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
                   },
                   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                     borderColor: '#00F5E0',
                   },
-                  '& .MuiSelect-icon': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                  }
-                }}
-                MenuProps={{
-                  PaperProps: {
-                    sx: {
-                      bgcolor: 'rgba(30, 41, 59, 0.95)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                    }
+                },
+              }}
+              sx={{
+                '& .MuiInputBase-input::placeholder': {
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  opacity: 1,
+                },
+              }}
+            />
+
+            {/* Token Type Tabs */}
+            <Box
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                p: 0.5,
+                '& .MuiTabs-root': {
+                  minHeight: 'auto',
+                },
+                '& .MuiTab-root': {
+                  minHeight: 'auto',
+                  padding: '8px 16px',
+                  margin: 0,
+                  borderRadius: '8px',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  textTransform: 'none',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    color: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  },
+                  '&.Mui-selected': {
+                    backgroundColor: '#00F5E0',
+                    color: '#000',
+                    '&:hover': {
+                      backgroundColor: '#00F5E0',
+                      color: '#000',
+                    },
+                  },
+                },
+                '& .MuiTabs-indicator': {
+                  display: 'none',
+                },
+              }}
+            >
+              <Tabs
+                value={activeTab}
+                onChange={handleTabChange}
+                variant="fullWidth"
+              >
+                <Tab 
+                  value="popular" 
+                  label={`Popular (${priorityTokens.length})`} 
+                />
+                <Tab
+                  value="all"
+                  label={`All Tokens (${allTokens.length})`}
+                />
+              </Tabs>
+            </Box>
+
+            {!isSelectedTokenAvailable && selected && (
+              <Alert 
+                severity="warning" 
+                sx={{ 
+                  bgcolor: 'rgba(255, 193, 7, 0.1)',
+                  color: '#ffc107',
+                  border: '1px solid rgba(255, 193, 7, 0.3)',
+                  '& .MuiAlert-icon': {
+                    color: '#ffc107',
                   }
                 }}
               >
-                {CHAIN_OPTIONS.map((chain) => (
-                  <MenuItem 
-                    key={chain.id} 
-                    value={chain.id}
-                    sx={{ color: 'white' }}
-                  >
-                    {chain.name} ({chain.symbol})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-          
-          {!isSelectedTokenAvailable && selected && (
-            <Alert 
-              severity="warning" 
-              sx={{ 
-                mb: 3,
-                bgcolor: 'rgba(255, 193, 7, 0.1)',
-                color: '#ffc107',
-                border: '1px solid rgba(255, 193, 7, 0.3)'
-              }}
-            >
-              Currently selected token ({selected.symbol}) is not available in the token list.
-            </Alert>
-          )}
+                Currently selected token ({selected.symbol}) is not available in the token list.
+              </Alert>
+            )}
+          </Box>
           
           {isLoading ? (
             <Box display="flex" flexDirection="column" alignItems="center" py={4}>
@@ -253,45 +418,49 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
               </Typography>
             </Box>
           ) : (
-            <Box>
-              {tokens.length === 0 ? (
-                <Box textAlign="center" py={4}>
+            <Box sx={{ flex: 1, overflowY: 'auto', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              {filteredTokens.length === 0 ? (
+                <Box textAlign="center" py={8}>
                   <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                    No tokens available for {selectedChain?.name || 'this network'}
+                    {searchQuery ? 'No tokens found matching your search' : `No ${activeTab} tokens available for ${selectedChain?.name || 'this network'}`}
                   </Typography>
                 </Box>
               ) : (
                 <>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" p={2} pb={0}>
                     <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      {tokens.length} tokens available on {selectedChain?.name}
+                      {searchQuery ? 
+                        `${filteredTokens.length} tokens found` : 
+                        `${filteredTokens.length} ${activeTab} tokens on ${selectedChain?.name}`
+                      }
                     </Typography>
                   </Box>
                   
-                  <List sx={{ maxHeight: 400, overflow: 'auto' }}>
-                    {tokens.map((token: Type, index) => {
+                  <List sx={{ p: 0 }}>
+                    {filteredTokens.map((token: Type, index) => {
                       const isPriority = PRIORITY_TOKENS.includes(token.symbol?.toUpperCase() || '')
                       
                       return (
                         <ListItem 
-                          key={token.id} 
+                          key={`${token.id}-${index}`} 
                           disablePadding
                           sx={{
-                            borderRadius: 1,
-                            mb: 0.5,
-                            bgcolor: selected?.id === token.id ? 'rgba(0, 245, 224, 0.1)' : 'transparent',
-                            border: selected?.id === token.id ? '1px solid rgba(0, 245, 224, 0.3)' : '1px solid transparent',
-                            '&:hover': {
-                              bgcolor: 'rgba(255, 255, 255, 0.05)'
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                            '&:last-child': {
+                              borderBottom: 'none',
                             }
                           }}
                         >
                           <ListItemButton 
                             onClick={() => handleSelect(token)}
                             sx={{ 
-                              borderRadius: 1,
                               py: 1.5,
-                              px: 2
+                              px: 2,
+                              bgcolor: selected?.id === token.id ? 'rgba(0, 245, 224, 0.1)' : 'transparent',
+                              border: selected?.id === token.id ? '1px solid rgba(0, 245, 224, 0.3)' : 'none',
+                              '&:hover': {
+                                bgcolor: selected?.id === token.id ? 'rgba(0, 245, 224, 0.15)' : 'rgba(255, 255, 255, 0.05)'
+                              }
                             }}
                           >
                             <ListItemAvatar>
@@ -315,12 +484,24 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
                                   >
                                     {token.symbol}
                                   </Typography>
-                                  {isPriority && (
+                                  {isPriority && activeTab === 'all' && (
                                     <Chip 
                                       label="Popular" 
                                       size="small" 
                                       sx={{ 
                                         bgcolor: 'rgba(0, 245, 224, 0.2)', 
+                                        color: '#00F5E0',
+                                        fontSize: '0.7rem',
+                                        height: 20
+                                      }} 
+                                    />
+                                  )}
+                                  {selected?.id === token.id && (
+                                    <Chip 
+                                      label="Selected" 
+                                      size="small" 
+                                      sx={{ 
+                                        bgcolor: 'rgba(0, 245, 224, 0.3)', 
                                         color: '#00F5E0',
                                         fontSize: '0.7rem',
                                         height: 20
@@ -364,6 +545,25 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
               )}
             </Box>
           )}
+
+          {/* Footer info */}
+          <Box
+            sx={{
+              p: 2,
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(255, 255, 255, 0.02)',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: 'rgba(255, 255, 255, 0.5)' }}
+            >
+              {searchQuery ? 
+                `Showing ${filteredTokens.length} results for "${searchQuery}"` :
+                `${activeTab === 'popular' ? priorityTokens.length : allTokens.length} ${activeTab} tokens available${crossChain ? ` on ${selectedChain?.name}` : ''}`
+              }
+            </Typography>
+          </Box>
         </DialogContent>
       </Dialog>
     </>
