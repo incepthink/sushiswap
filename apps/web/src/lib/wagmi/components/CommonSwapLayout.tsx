@@ -35,7 +35,7 @@ export default function CommonSwapLayout({ children, }: CommonSwapLayoutProps) {
 
           {/* Chart Container - Fixed Height with exact GlowBox styling */}
           <div className="h-[400px] sm:h-[500px] lg:h-[600px] w-full">
-            <div className="glow-box h-full w-full !p-4 relative">
+            <div className="glow-box h-full w-full !p-1 relative">
               <div className="relative h-full w-full z-10 dot-pattern-cyan">
                 <ChartSpot token0={token0} />
               </div>

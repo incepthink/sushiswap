@@ -53,19 +53,11 @@ const navItems = [
     label: "Spot",
   },
   { 
-    href: "https://perp.aggtrade.xyz/", 
-    label: "Perps" 
-  },
-  { 
-    href: "https://lending.aggtrade.xyz/", 
+    href: "https://preview.aggtrade.xyz/lend/earn", 
     label: "Lend/Borrow" 
   },
   { 
-    href: "https://yield.aggtrade.xyz/", 
-    label: "Yield Farming" 
-  },
-  { 
-    href: "https://aggtrade.xyz/profile", 
+    href: "https://preview.aggtrade.xyz/profile", 
     label: "Account" 
   },
 ]
