@@ -1,6 +1,6 @@
 "use client"
 
-import { TokenBalancesCard } from 'src/ui/swap/simple/TokenBalancesCard'
+import { TokenBalancesCard } from 'src/components/TokenBalancesCard'
 import ChartSpot, { ChartHeader } from 'src/ui/swap/simple/ChartSpot'
 import TokenSelect from 'src/lib/wagmi/components/token-selector/token-lists/TokenSelect'
 import { ReactNode } from 'react'

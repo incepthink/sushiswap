@@ -1,208 +1,105 @@
 'use client'
 
-import { useAccount, useBalance, useChainId } from 'wagmi'
+import { useAccount, useChainId } from 'wagmi'
 import { FormattedNumber } from '@sushiswap/ui'
 import { formatPercent, formatUSD } from 'sushi/format'
-import { usePortfolioDetailed, type PortfolioToken } from './usePortfolioDetailed'
-import { useState, useEffect } from 'react'
-import {ethers} from "ethers"
-import axios from 'axios'
-import { BACKEND_URL } from './ChartSpot'
+import { usePortfolioDetailed, type PortfolioToken } from 'src/ui/swap/simple/usePortfolioDetailed'
+import { useKatanaPortfolio, type KatanaPortfolioToken } from './useKatanaPortfolio'
+import { useEntryPrices } from './useEntryPrices'
+import { EditablePrice } from './EditablePrice'
+import { PortfolioSummary } from './PortfolioSummary'
+import { 
+  calculatePortfolioTotals, 
+  calculateTokenPnL, 
+  getTokenLogo, 
+  CHAIN_NAMES, 
+  generateTokenKey 
+} from './portfolioUtils'
+import { BACKEND_URL} from "src/ui/swap/simple/ChartSpot"
 
-const CHAIN_NAMES: { [key: number]: string } = {
-  1: 'Ethereum',
-  137: 'Polygon',
-  42161: 'Arbitrum',
-  10: 'Optimism',
-  56: 'BSC',
-  747474: 'Katana'
-}
-
-const getTokenLogo = (symbol: string, chainId: number) => {
-  const symbolUpper = symbol.toUpperCase()
-  switch (symbolUpper) {
-    case 'ETH':
-      return 'https://cdn.moralis.io/eth/0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.png'
-    case 'USDC':
-      return '/logos/usdc.png'
-    case 'USDT':
-      return 'https://cdn.moralis.io/eth/0xdac17f958d2ee523a2206206994597c13d831ec7.png'
-    case 'WETH':
-      return '/logos/weth.png'
-    case 'WBTC':
-      return '/logos/wbtc.png'
-    case 'LINK':
-      return 'https://tokens.1inch.io/0x514910771af9ca656af840dff83e8264ecf986ca.png'
-    default:
-      return null
-  }
-}
-
-// Custom hook for managing entry prices in localStorage
-const useEntryPrices = (address: string | undefined) => {
-  const [entryPrices, setEntryPrices] = useState<{ [key: string]: number }>({})
-
-  useEffect(() => {
-    if (!address) return
-
-    const storageKey = `entry_prices_${address}`
-    const stored = localStorage.getItem(storageKey)
-    if (stored) {
-      try {
-        setEntryPrices(JSON.parse(stored))
-      } catch (error) {
-        console.error('Error parsing stored entry prices:', error)
-        setEntryPrices({})
-      }
-    }
-  }, [address])
-
-  const updateEntryPrice = (tokenKey: string, price: number) => {
-    if (!address) return
-
-    const newEntryPrices = { ...entryPrices, [tokenKey]: price }
-    setEntryPrices(newEntryPrices)
-    
-    const storageKey = `entry_prices_${address}`
-    localStorage.setItem(storageKey, JSON.stringify(newEntryPrices))
-  }
-
-  const getEntryPrice = (tokenKey: string, defaultPrice: number) => {
-    return entryPrices[tokenKey] ?? defaultPrice
-  }
-
-  return { entryPrices, updateEntryPrice, getEntryPrice }
-}
-
-// Editable price input component
-const EditablePrice = ({ 
-  tokenKey, 
-  currentPrice, 
-  defaultPrice, 
-  onPriceChange 
-}: {
-  tokenKey: string
-  currentPrice: number
-  defaultPrice: number
-  onPriceChange: (price: number) => void
-}) => {
-  const [isEditing, setIsEditing] = useState(false)
-  const [editValue, setEditValue] = useState(currentPrice.toFixed(2))
-
-  const handleSave = () => {
-    const newPrice = parseFloat(editValue)
-    if (!isNaN(newPrice) && newPrice > 0) {
-      onPriceChange(newPrice)
-      setIsEditing(false)
-    } else {
-      setEditValue(currentPrice.toFixed(2))
-      setIsEditing(false)
-    }
-  }
-
-  const handleCancel = () => {
-    setEditValue(currentPrice.toFixed(2))
-    setIsEditing(false)
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSave()
-    } else if (e.key === 'Escape') {
-      handleCancel()
-    }
-  }
-
-  if (isEditing) {
-    return (
-      <div className="flex items-center justify-center gap-1">
-        <input
-          type="number"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onKeyDown={handleKeyPress}
-          onBlur={handleSave}
-          className="w-20 px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white text-center focus:outline-none focus:border-[#00F5E0]"
-          autoFocus
-          step="0.01"
-        />
-      </div>
-    )
-  }
-
-  return (
-    <div 
-      className=" group flex items-center justify-center"
-      onClick={() => setIsEditing(true)}
-      title="Click to edit entry price"
-    >
-      <div className="flex justify-center gap-2 relative  cursor-pointer hover:bg-gray-700 px-2 py-1 rounded transition-colors">
-        <span>${currentPrice.toFixed(2)}</span>
-        {/* <svg 
-          className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg> */}
-      {currentPrice !== defaultPrice && (
-        <div className="text-xs text-blue-400 mt-1 ">Custom</div>
-      )}
-      </div>
-    </div>
-  )
-}
+// Combined token type for both Katana and other chains
+type CombinedToken = (PortfolioToken | KatanaPortfolioToken) & {
+  amount: number;
+  price_to_usd: number;
+  value_usd: number;
+  symbol: string;
+  name: string;
+  chain_id: number;
+  contract_address?: string;
+  address?: string;
+};
 
 export function TokenBalancesCard() {
   const { address } = useAccount()
-  const { 
-    data, 
-    isLoading, 
-    error, 
-    totalValue, 
-    totalPnL, 
-    totalROI 
-  } = usePortfolioDetailed()
-
-  const balanceFunc = async (walletAddress: string) => {
-    const res = await axios.get(`${BACKEND_URL}/api/balance/katana?address=${walletAddress}`)
-    console.log("BALANCE API", res.data);
-    
-  }
-
-  
-
-  useEffect(() => {
-    balanceFunc("0x314Ab1044316e62dCDdbC87c2df57F1254b4B4A6")
-  }, [])
-  
-  
-
-  const { updateEntryPrice, getEntryPrice } = useEntryPrices(address)
-
   const connectedChainId = useChainId()
+  const { updateEntryPrice, getEntryPrice } = useEntryPrices(address)
+  
+  // Use different hooks based on chain
+  const isKatana = connectedChainId === 747474
+  
+  // Multi-chain portfolio data
+  const { 
+    data: multiChainData, 
+    isLoading: multiChainLoading, 
+    error: multiChainError, 
+    totalValue: multiChainTotalValue 
+  } = usePortfolioDetailed()
+  
+  // Katana portfolio data
+  const { 
+    tokens: katanaTokens, 
+    totalValue: katanaTotalValue, 
+    isLoading: katanaLoading, 
+    error: katanaError 
+  } = useKatanaPortfolio(address || null)
+
+  // Filter multi-chain data by connected chain ID
+  const filteredMultiChainData = multiChainData?.filter(token => token.chain_id === connectedChainId) || []
+  const filteredMultiChainTotalValue = filteredMultiChainData.reduce((total, token) => total + token.value_usd, 0)
+
+  // Determine which data to use
+  const data = isKatana ? katanaTokens : filteredMultiChainData
+  const isLoading = isKatana ? katanaLoading : multiChainLoading
+  const error = isKatana ? katanaError : multiChainError
+  const totalValue = isKatana ? katanaTotalValue : filteredMultiChainTotalValue
+
+  // Normalize data format
+  const normalizedData: CombinedToken[] = data ? data.map((token): CombinedToken => {
+    if (isKatana) {
+      const katanaToken = token as KatanaPortfolioToken
+      return {
+        ...katanaToken,
+        amount: katanaToken.balance,
+        price_to_usd: katanaToken.price,
+        value_usd: katanaToken.value,
+        contract_address: katanaToken.address,
+      }
+    } else {
+      const portfolioToken = token as PortfolioToken
+      return {
+        ...portfolioToken,
+        address: portfolioToken.contract_address,
+      }
+    }
+  }) : []
 
   // Calculate custom totals based on user-defined entry prices
   const calculateCustomTotals = () => {
-    if (!data) return { customTotalPnL: 0, customTotalROI: 0 }
+    if (!normalizedData.length) return { customTotalPnL: 0, customTotalROI: 0 }
 
-    let customTotalPnL = 0
-    let totalInvested = 0
-
-    data.forEach((token) => {
-      const tokenKey = `${token.chain_id}-${token.contract_address}`
-      const entryPrice = getEntryPrice(tokenKey, token.price_to_usd - (token.abs_profit_usd / token.amount))
-      const investedValue = entryPrice * token.amount
-      const currentValue = token.value_usd
-      const tokenPnL = currentValue - investedValue
-
-      customTotalPnL += tokenPnL
-      totalInvested += investedValue
+    const tokenCalculations = normalizedData.map((token) => {
+      const tokenKey = generateTokenKey(token.chain_id, token.contract_address || token.address || '')
+      const defaultEntryPrice = isKatana ? token.price_to_usd : token.price_to_usd
+      const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
+      
+      return {
+        amount: token.amount,
+        currentPrice: token.price_to_usd,
+        entryPrice,
+      }
     })
 
-    const customTotalROI = totalInvested > 0 ? customTotalPnL / totalInvested : 0
-    return { customTotalPnL, customTotalROI }
+    return calculatePortfolioTotals(tokenCalculations)
   }
 
   const { customTotalPnL, customTotalROI } = calculateCustomTotals()
@@ -231,7 +128,7 @@ export function TokenBalancesCard() {
           </div>
           <div className="text-center py-8 relative z-50">
             <div className="text-red-400 text-sm">
-              Failed to load portfolio data: {error.message}
+              Failed to load portfolio data: {typeof error === 'string' ? error : 'Unknown error'}
             </div>
           </div>
         </div>
@@ -242,38 +139,25 @@ export function TokenBalancesCard() {
   return (
     <div className="w-full relative z-50">
       <div className="w-full p-4 sm:p-6 md:p-8 rounded-2xl text-white font-sans bg-transparent relative z-50">
-        {/* Header with Portfolio Summary */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 relative z-50">
-          <div className="text-lg sm:text-xl font-semibold">
-            Portfolio Overview
-          </div>
-          
-          {/* Portfolio Summary Stats */}
-          <div className="flex gap-10">
-            <div className="relative z-50 flex flex-col items-center">
-              <div className="text-xl sm:text-2xl font-bold">
-                ${totalValue.toFixed(2)}
-              </div>
-              <div className="text-xs text-gray-400">Total Value</div>
-            </div>
-            
-            <div className="relative z-50 flex flex-col items-center">
-              <div className={`text-lg sm:text-xl font-semibold ${
-                customTotalPnL >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {customTotalPnL >= 0 ? '+' : ''}${customTotalPnL.toFixed(2)}
-              </div>
-              <div className="text-xs text-gray-400">Custom P&L</div>
-            </div>
-            
-            <div className="relative z-50 flex flex-col items-center">
-              <div className={`text-lg sm:text-xl font-semibold ${
-                customTotalROI >= 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {customTotalROI >= 0 ? '+' : ''}{formatPercent(customTotalROI)}
-              </div>
-              <div className="text-xs text-gray-400">Custom ROI</div>
-            </div>
+        {/* Portfolio Summary */}
+        <PortfolioSummary 
+          totalValue={totalValue}
+          customTotalPnL={customTotalPnL}
+          customTotalROI={customTotalROI}
+        />
+
+        {/* Chain Indicator */}
+        <div className="mb-4">
+          <div className="text-sm text-gray-400 flex items-center gap-2">
+            {isKatana ? (
+              <>
+                <span>Showing Katana Network tokens</span>
+              </>
+            ) : (
+              <>
+                <span>Showing {CHAIN_NAMES[connectedChainId] || `Chain ${connectedChainId}`} tokens</span>
+              </>
+            )}
           </div>
         </div>
 
@@ -283,7 +167,7 @@ export function TokenBalancesCard() {
             <div className="w-full flex justify-center py-8 relative z-50">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00F5E0]"></div>
             </div>
-          ) : data && data.length > 0 ? (
+          ) : normalizedData && normalizedData.length > 0 ? (
             <>
               {/* Desktop Table View */}
               <div className="hidden lg:block relative z-50">
@@ -298,7 +182,6 @@ export function TokenBalancesCard() {
                       </th>
                       <th className="text-center font-medium pb-4 text-[rgb(0,245,224)]">
                         Entry Price
-                        {/* <Chip size='small' sx={{color: "black", backgroundColor: "rgba(0,245,224,0.8)"}} label="Edit" /> */}
                         <span className='text-[white] text-[10px] ml-3'>Edit</span>
                       </th>
                       <th className="text-center font-medium pb-4 text-[#00F5E0]">
@@ -316,22 +199,21 @@ export function TokenBalancesCard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.map((token: PortfolioToken) => {
+                    {normalizedData.map((token: CombinedToken) => {
                       const tokenLogo = getTokenLogo(token.symbol, token.chain_id)
                       const chainName = CHAIN_NAMES[token.chain_id] || `Chain ${token.chain_id}`
-                      const tokenKey = `${token.chain_id}-${token.contract_address}`
+                      const tokenKey = generateTokenKey(token.chain_id, token.contract_address || token.address || '')
                       
-                      // Calculate default entry price from API data
-                      const apiEntryPrice = token.price_to_usd
-                      const entryPrice = getEntryPrice(tokenKey, apiEntryPrice)
+                      // Calculate default entry price
+                      const defaultEntryPrice = token.price_to_usd
+                      const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
                       
-                      // Calculate custom P&L and ROI based on user entry price
-                      const investedValue = entryPrice * token.amount
-                      console.log(entryPrice, token.amount, investedValue, tokenLogo);
-                      
-                      const currentValue = token.value_usd
-                      const customPnL = currentValue - investedValue
-                      const customROI = investedValue > 0 ? customPnL / investedValue : 0
+                      // Calculate custom P&L and ROI
+                      const { pnl: customPnL, roi: customROI } = calculateTokenPnL(
+                        token.amount,
+                        token.price_to_usd,
+                        entryPrice
+                      )
                       
                       return (
                         <tr
@@ -375,11 +257,11 @@ export function TokenBalancesCard() {
                           <td className="py-4 pr-4 text-right">
                             <FormattedNumber number={token.amount.toString()} />
                           </td>
-                          <td className="py-4  text-center">
+                          <td className="py-4 text-center">
                             <EditablePrice
                               tokenKey={tokenKey}
                               currentPrice={entryPrice}
-                              defaultPrice={apiEntryPrice}
+                              defaultPrice={defaultEntryPrice}
                               onPriceChange={(price) => updateEntryPrice(tokenKey, price)}
                             />
                           </td>
@@ -408,20 +290,21 @@ export function TokenBalancesCard() {
 
               {/* Mobile/Tablet Card View */}
               <div className="block lg:hidden space-y-3 relative z-50">
-                {data.map((token: PortfolioToken) => {
+                {normalizedData.map((token: CombinedToken) => {
                   const tokenLogo = getTokenLogo(token.symbol, token.chain_id)
                   const chainName = CHAIN_NAMES[token.chain_id] || `Chain ${token.chain_id}`
-                  const tokenKey = `${token.chain_id}-${token.contract_address}`
+                  const tokenKey = generateTokenKey(token.chain_id, token.contract_address || token.address || '')
                   
-                  // Calculate default entry price from API data
-                  const apiEntryPrice = token.price_to_usd - (token.abs_profit_usd / token.amount)
-                  const entryPrice = getEntryPrice(tokenKey, apiEntryPrice)
+                  // Calculate default entry price
+                  const defaultEntryPrice = token.price_to_usd
+                  const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
                   
-                  // Calculate custom P&L and ROI based on user entry price
-                  const investedValue = entryPrice * token.amount
-                  const currentValue = token.value_usd
-                  const customPnL = currentValue - investedValue
-                  const customROI = investedValue > 0 ? customPnL / investedValue : 0
+                  // Calculate custom P&L and ROI
+                  const { pnl: customPnL, roi: customROI } = calculateTokenPnL(
+                    token.amount,
+                    token.price_to_usd,
+                    entryPrice
+                  )
                   
                   return (
                     <div
@@ -490,7 +373,7 @@ export function TokenBalancesCard() {
                             <EditablePrice
                               tokenKey={tokenKey}
                               currentPrice={entryPrice}
-                              defaultPrice={apiEntryPrice}
+                              defaultPrice={defaultEntryPrice}
                               onPriceChange={(price) => updateEntryPrice(tokenKey, price)}
                             />
                           </div>

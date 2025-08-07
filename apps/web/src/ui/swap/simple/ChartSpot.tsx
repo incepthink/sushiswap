@@ -13,7 +13,7 @@ import {
 import { startOfMonth, addMonths, differenceInMonths } from "date-fns";
 import axios from "axios";
 
-export const BACKEND_URL = "https://aggtrade-backend-1.onrender.com";
+export const BACKEND_URL = "https://api.aggtrade.xyz";
 
 // Token logo mapping function
 const getTokenLogo = (symbol: string, fallbackUrl?: string) => {

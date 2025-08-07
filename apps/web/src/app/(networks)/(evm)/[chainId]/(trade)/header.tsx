@@ -65,6 +65,9 @@ const navItems = [
 export function GradientConnectButton() {
   const connectedChainId = useChainId()
 
+  console.log("CONNECT DEBUG", connectedChainId);
+  
+
   return (
     <div className="flex items-center">
       <WagmiHeaderComponents

@@ -27,11 +27,15 @@ import type { Percent } from 'sushi/math'
 import { useAccount } from 'wagmi'
 import { useAmountBalance } from '~evm/_common/ui/balance-provider/use-balance'
 import { usePrice } from '~evm/_common/ui/price-provider/price-provider/use-price'
+import { useKatanaPrice } from 'src/ui/swap/simple/useKatanaPrice'
 import { TokenSelector } from '../../token-selector/token-selector'
 import { BalancePanel } from './BalancePanel'
 import { PricePanel } from './PricePanel'
 import { usePriceBackend } from './usePriceBackend'
 import { SimpleTokenSelector } from '../../token-selector/token-lists/SimpleTokenSelector'
+
+// Add BACKEND_URL constant or import it
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000'
 
 interface CurrencyInputProps {
   id?: string
@@ -105,23 +109,50 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   const { data: balance, isLoading: isBalanceLoading } =
     useAmountBalance(currency)
 
-  // const { data: price, isLoading: isPriceLoading } = usePrice({
-  //   chainId: currency?.chainId,
-  //   address: currency?.wrapped?.address,
-  //   enabled: !hidePricing,
-  // })
+  // Determine if we're on Katana network
+  const isKatana = chainId === 747474
 
-  const { tokenPrice: price, isLoading: isPriceLoading } = usePriceBackend(
-  currency?.wrapped?.address,
-  undefined,
-  chainId === 1 ? "ethereum" : "katana",
-  { 
-    enabled: !hidePricing 
-  }
-)
+  // Get token address for price lookup
+  const tokenAddress = currency?.wrapped?.address
 
-  console.log("PRICE::", price);
-  
+  // Use Katana price hook for Katana network
+  const { 
+    price: katanaPrice, 
+    loading: isKatanaPriceLoading,
+    error: katanaPriceError 
+  } = useKatanaPrice(
+    isKatana ? tokenAddress || null : null, 
+  )
+
+  // Use backend price hook for other networks
+  const { 
+    tokenPrice: backendPrice, 
+    isLoading: isBackendPriceLoading 
+  } = usePriceBackend(
+    !isKatana ? tokenAddress : undefined,
+    undefined,
+    chainId === 1 ? "ethereum" : "katana",
+    { 
+      enabled: !hidePricing && !isKatana 
+    }
+  )
+
+  // Determine which price and loading state to use
+  const price = isKatana ? katanaPrice || undefined : backendPrice 
+  const isPriceLoading = isKatana ? isKatanaPriceLoading : isBackendPriceLoading
+
+  // Log price information for debugging
+  useEffect(() => {
+    if (currency && !hidePricing) {
+      console.log(`Price for ${currency.symbol} on chain ${chainId}:`, {
+        isKatana,
+        tokenAddress,
+        price,
+        loading: isPriceLoading,
+        error: katanaPriceError
+      })
+    }
+  }, [currency, chainId, isKatana, tokenAddress, price, isPriceLoading, katanaPriceError, hidePricing])
 
   const _value = useMemo(
     () => tryParseAmount(value, currency),
@@ -150,7 +181,9 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
     ? error
     : insufficientBalance
       ? 'Exceeds Balance'
-      : undefined
+      : katanaPriceError && isKatana
+        ? `Price Error: ${katanaPriceError}`
+        : undefined
 
   const _onChange = useCallback(
     (value: string) => {
