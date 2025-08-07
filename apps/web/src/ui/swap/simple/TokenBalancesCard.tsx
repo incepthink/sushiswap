@@ -5,6 +5,7 @@ import { FormattedNumber } from '@sushiswap/ui'
 import { formatPercent, formatUSD } from 'sushi/format'
 import { usePortfolioDetailed, type PortfolioToken } from './usePortfolioDetailed'
 import { useState, useEffect } from 'react'
+import { Chip } from '@mui/material'
 
 const CHAIN_NAMES: { [key: number]: string } = {
   1: 'Ethereum',
@@ -129,24 +130,24 @@ const EditablePrice = ({
 
   return (
     <div 
-      className="cursor-pointer hover:bg-gray-700 px-2 py-1 rounded transition-colors group flex items-center justify-center"
+      className=" group flex items-center justify-center"
       onClick={() => setIsEditing(true)}
       title="Click to edit entry price"
     >
-      <div className="flex items-center gap-1">
+      <div className="flex justify-center gap-2 relative  cursor-pointer hover:bg-gray-700 px-2 py-1 rounded transition-colors">
         <span>${currentPrice.toFixed(2)}</span>
-        <svg 
+        {/* <svg 
           className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg>
-      </div>
+        </svg> */}
       {currentPrice !== defaultPrice && (
-        <div className="text-xs text-blue-400 mt-1">Custom</div>
+        <div className="text-xs text-blue-400 mt-1 ">Custom</div>
       )}
+      </div>
     </div>
   )
 }
@@ -277,8 +278,10 @@ export function TokenBalancesCard() {
                       <th className="text-right font-medium pb-4 text-[#00F5E0]">
                         Balance
                       </th>
-                      <th className="text-center font-medium pb-4 text-[#00F5E0]">
+                      <th className="text-center font-medium pb-4 text-[rgb(0,245,224)]">
                         Entry Price
+                        {/* <Chip size='small' sx={{color: "black", backgroundColor: "rgba(0,245,224,0.8)"}} label="Edit" /> */}
+                        <span className='text-[white] text-[10px] ml-3'>Edit</span>
                       </th>
                       <th className="text-center font-medium pb-4 text-[#00F5E0]">
                         Current Price
@@ -301,11 +304,13 @@ export function TokenBalancesCard() {
                       const tokenKey = `${token.chain_id}-${token.contract_address}`
                       
                       // Calculate default entry price from API data
-                      const apiEntryPrice = token.price_to_usd - (token.abs_profit_usd / token.amount)
+                      const apiEntryPrice = token.price_to_usd
                       const entryPrice = getEntryPrice(tokenKey, apiEntryPrice)
                       
                       // Calculate custom P&L and ROI based on user entry price
                       const investedValue = entryPrice * token.amount
+                      console.log(entryPrice, token.amount, investedValue, tokenLogo);
+                      
                       const currentValue = token.value_usd
                       const customPnL = currentValue - investedValue
                       const customROI = investedValue > 0 ? customPnL / investedValue : 0
@@ -352,7 +357,7 @@ export function TokenBalancesCard() {
                           <td className="py-4 pr-4 text-right">
                             <FormattedNumber number={token.amount.toString()} />
                           </td>
-                          <td className="py-4 px-4 text-center">
+                          <td className="py-4  text-center">
                             <EditablePrice
                               tokenKey={tokenKey}
                               currentPrice={entryPrice}
@@ -463,7 +468,7 @@ export function TokenBalancesCard() {
                         </div>
                         <div className="relative z-50">
                           <div className="text-[#00F5E0] text-xs mb-1">Entry Price</div>
-                          <div className="font-medium text-white flex justify-center">
+                          <div className="font-medium text-white flex justify-start">
                             <EditablePrice
                               tokenKey={tokenKey}
                               currentPrice={entryPrice}
