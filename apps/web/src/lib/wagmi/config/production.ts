@@ -47,8 +47,8 @@ const connectors = connectorsForWallets(
     },
   ],
   {
-    appName: 'Sushi',
-    projectId: '3f44629277b155ef0caebf3dc705c4ba',
+    appName: 'AggTrade',
+    projectId: 'ecf169f1ed1534b70ed647ce6910990a',
   },
 )
 
