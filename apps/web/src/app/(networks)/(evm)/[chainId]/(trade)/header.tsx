@@ -53,11 +53,11 @@ const navItems = [
     label: "Spot",
   },
   { 
-    href: "https://preview.aggtrade.xyz/lend/earn", 
+    href: "https://v2.aggtrade.xyz/lend/earn", 
     label: "Lend/Borrow" 
   },
   { 
-    href: "https://preview.aggtrade.xyz/profile", 
+    href: "https://v2.aggtrade.xyz/profile", 
     label: "Account" 
   },
 ]

@@ -926,7 +926,7 @@ const _CrossChainSwapTradeReviewDialog: FC<{
                         <a
                           target="_blank"
                           href={EvmChain.accountUrl(chainId0, recipient) ?? '#'}
-                          className="flex items-center gap-2 cursor-pointer text-blue"
+                          className="flex items-center gap-2 cursor-pointer text-white"
                           rel="noreferrer"
                         >
                           {shortenAddress(recipient)}

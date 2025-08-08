@@ -438,6 +438,7 @@ const _SimpleSwapTradeReviewDialog: FC<{
                       <List.KeyValue title="Recipient">
                         <Button variant="link" size="sm" asChild>
                           <a
+                          className='text-white'
                             target="_blank"
                             href={
                               EvmChain.fromChainId(chainId)?.getAccountUrl(

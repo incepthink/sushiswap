@@ -177,7 +177,7 @@ export const SimpleSwapTradeReviewDialog: FC<{ children: ReactNode }> = ({
                             account?.address
                           }?network=${networkNameToNetwork(network)}`}
                           className={classNames(
-                            'flex items-center gap-2 cursor-pointer text-blue',
+                            'flex items-center gap-2 cursor-pointer text-white',
                           )}
                           rel="noreferrer"
                         >

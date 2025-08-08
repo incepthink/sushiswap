@@ -185,7 +185,7 @@ export const ReviewSwapDialog = () => {
                           target="_blank"
                           href={getTronscanAddressLink(address)}
                           className={classNames(
-                            'flex items-center gap-2 cursor-pointer text-blue hover:underline hover:text-blue-700',
+                            'flex items-center gap-2 cursor-pointer text-white hover:underline hover:text-white',
                           )}
                           rel="noreferrer"
                         >
