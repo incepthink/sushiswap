@@ -16,6 +16,7 @@ import {
   generateTokenKey 
 } from './portfolioUtils'
 import { BACKEND_URL} from "src/ui/swap/simple/ChartSpot"
+import { useParams } from 'next/navigation'
 
 // Combined token type for both Katana and other chains
 type CombinedToken = (PortfolioToken | KatanaPortfolioToken) & {
@@ -30,8 +31,11 @@ type CombinedToken = (PortfolioToken | KatanaPortfolioToken) & {
 };
 
 export function TokenBalancesCard() {
+  const params = useParams();
+  // params.chainId is a string!
+  const chainId = Number(params.chainId);
   const { address } = useAccount()
-  const connectedChainId = useChainId()
+  const connectedChainId = Number(params.chainId);
   const { updateEntryPrice, getEntryPrice } = useEntryPrices(address)
   
   // Use different hooks based on chain
@@ -52,6 +56,8 @@ export function TokenBalancesCard() {
     isLoading: katanaLoading, 
     error: katanaError 
   } = useKatanaPortfolio(address || null)
+
+  console.log(multiChainData, katanaTokens);
 
   // Filter multi-chain data by connected chain ID
   const filteredMultiChainData = multiChainData?.filter(token => token.chain_id === connectedChainId) || []

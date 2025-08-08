@@ -43,7 +43,7 @@ const ResponsiveWalletWrapper: FC<{
   )
 }
 
-export const UserPortfolio = () => {
+export const UserPortfolio = ({selectedNetwork}: any) => {
   const { isSm } = useBreakpoint('sm')
   const { address } = useAccount()
   const { disconnect } = useDisconnect()
@@ -58,7 +58,7 @@ export const UserPortfolio = () => {
     chainId: ChainId.ETHEREUM,
   })
 
-if (!address) return <ConnectButton variant="secondary" />
+if (!address) return <ConnectButton selectedNetowrk={selectedNetwork} variant="secondary" />
 
   const content = (
     <div className="p-6">

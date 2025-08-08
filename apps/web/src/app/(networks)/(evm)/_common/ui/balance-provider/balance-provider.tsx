@@ -144,11 +144,11 @@ export function BalanceProvider({ children }: BalanceProviderContextProps) {
 
   const refetchChain = useCallback(
   async (chainId: EvmChainId) => {
-    console.log(`🔍 Starting balance fetch for chain ${chainId}`)
+    // console.log(`🔍 Starting balance fetch for chain ${chainId}`)
     
     const chain = getOrCreateChain(state, chainId)
     if (chain.isFetching || !state.account) {
-      console.log(`❌ Skipping fetch: isFetching=${chain.isFetching}, account=${state.account}`)
+      // console.log(`❌ Skipping fetch: isFetching=${chain.isFetching}, account=${state.account}`)
       return
     }
     chain.isFetching = true

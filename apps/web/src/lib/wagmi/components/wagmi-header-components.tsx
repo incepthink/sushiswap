@@ -52,7 +52,7 @@ export const WagmiHeaderComponents: React.FC<WagmiHeaderComponentsProps> = ({
         onChange={onChange}
         className="flex"
       />
-      <UserPortfolio />
+      <UserPortfolio selectedNetwork={selectedNetwork} />
     </Suspense>
   )
 }

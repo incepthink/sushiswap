@@ -54,7 +54,7 @@ const navItems = [
   },
   { 
     href: "https://v2.aggtrade.xyz/lend/earn", 
-    label: "Lend/Borrow" 
+    label: "Earn/Borrow" 
   },
   { 
     href: "https://v2.aggtrade.xyz/profile", 
@@ -62,17 +62,15 @@ const navItems = [
   },
 ]
 
-export function GradientConnectButton() {
-  const connectedChainId = useChainId()
+export function GradientConnectButton({_chainId}: any) {
 
-  console.log("CONNECT DEBUG", connectedChainId);
   
 
   return (
     <div className="flex items-center">
       <WagmiHeaderComponents
         networks={SUPPORTED_NETWORKS}
-        selectedNetwork={connectedChainId as EvmChainId}
+        selectedNetwork={_chainId}
         supportedNetworks={SUPPORTED_NETWORKS}
       />
     </div>
@@ -133,12 +131,12 @@ export const Header: FC<HeaderProps> = ({
 
         {/* Desktop Connect Button */}
         <div className="hidden lg:block">
-          <GradientConnectButton />
+          <GradientConnectButton _chainId={_chainId} />
         </div>
 
         {/* Mobile Menu Button and Connect Button */}
         <div className="lg:hidden flex items-center gap-2">
-          <GradientConnectButton />
+          <GradientConnectButton _chainId={_chainId} />
           <button
             onClick={toggleMenu}
             className="text-white p-2 hover:bg-gray-800 rounded-md transition-colors duration-200 flex items-center justify-center"

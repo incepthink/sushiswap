@@ -10,18 +10,25 @@ import {
 import { Button, type ButtonProps } from '@sushiswap/ui'
 import React, { type FC, useCallback } from 'react'
 import { useConnect } from '../hooks/wallet/useConnect'
+import { useChainId, useSwitchChain } from 'wagmi'
 
 export const ConnectButton: FC<ButtonProps> = ({
   children: _children,
+  selectedNetowrk,
   ...props
 }) => {
   const { pending, connect, connectors } = useConnect()
   const { openConnectModal } = useConnectModal()
+  const {  switchChain } = useSwitchChain()
+
+  const chainId = useChainId()
 
   const onConnect = useCallback(() => {
     if (process.env.NEXT_PUBLIC_APP_ENV === 'test') {
       connect({ connector: connectors[0] })
     } else {
+      console.log("SELECTD NETWORK", selectedNetowrk);
+      
       openConnectModal?.()
     }
   }, [openConnectModal, connect, connectors])
