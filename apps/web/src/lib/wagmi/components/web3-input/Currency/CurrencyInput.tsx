@@ -129,16 +129,19 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
     tokenPrice: backendPrice, 
     isLoading: isBackendPriceLoading 
   } = usePriceBackend(
-    !isKatana ? tokenAddress : undefined,
+    tokenAddress,
     undefined,
-    chainId === 1 ? "ethereum" : "katana",
+    chainId,
     { 
       enabled: !hidePricing && !isKatana 
     }
   )
 
+  console.log("BACKEDNPRICE", backendPrice);
+  
+
   // Determine which price and loading state to use
-  const price = isKatana ? katanaPrice || undefined : backendPrice 
+  const price = isKatana ? katanaPrice || undefined : backendPrice || undefined
   const isPriceLoading = isKatana ? isKatanaPriceLoading : isBackendPriceLoading
 
   // Log price information for debugging
