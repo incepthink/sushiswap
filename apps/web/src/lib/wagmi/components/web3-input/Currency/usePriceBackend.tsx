@@ -26,6 +26,8 @@ const fetchTokenPriceSushi = async (
   tokenAddress: Address, 
   chainId: number
 ): Promise<number | null> => {
+  console.log("ADDRESS SUSHI::", tokenAddress);
+  
   try {
     const { data } = await axios.get(
       `${SUSHI_API_BASE}/${chainId}/${tokenAddress}`,

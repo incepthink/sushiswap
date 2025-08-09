@@ -1,6 +1,6 @@
 'use client'
 
-import { useAccount, useChainId } from 'wagmi'
+import { useAccount } from 'wagmi'
 import { FormattedNumber } from '@sushiswap/ui'
 import { formatPercent, formatUSD } from 'sushi/format'
 import { usePortfolioDetailed, type PortfolioToken } from 'src/ui/swap/simple/usePortfolioDetailed'
@@ -8,96 +8,234 @@ import { useKatanaPortfolio, type KatanaPortfolioToken } from './useKatanaPortfo
 import { useEntryPrices } from './useEntryPrices'
 import { EditablePrice } from './EditablePrice'
 import { PortfolioSummary } from './PortfolioSummary'
-import { 
-  calculatePortfolioTotals, 
-  calculateTokenPnL, 
-  getTokenLogo, 
-  CHAIN_NAMES, 
-  generateTokenKey 
+import { useBatchPriceBackend } from 'src/lib/wagmi/components/web3-input/Currency/usePriceBackend'
+import {
+  calculatePortfolioTotals,
+  calculateTokenPnL,
+  getTokenLogo,
+  CHAIN_NAMES,
+  generateTokenKey,
 } from './portfolioUtils'
-import { BACKEND_URL} from "src/ui/swap/simple/ChartSpot"
 import { useParams } from 'next/navigation'
+import { useMemo } from 'react'
+import { IconButton, Tooltip, CircularProgress } from '@mui/material'
+import RefreshIcon from '@mui/icons-material/Refresh'
 
 // Combined token type for both Katana and other chains
 type CombinedToken = (PortfolioToken | KatanaPortfolioToken) & {
-  amount: number;
-  price_to_usd: number;
-  value_usd: number;
-  symbol: string;
-  name: string;
-  chain_id: number;
-  contract_address?: string;
-  address?: string;
-};
+  amount: number
+  price_to_usd: number
+  value_usd: number
+  symbol: string
+  name: string
+  chain_id: number
+  contract_address?: string
+  address?: string
+}
 
 export function TokenBalancesCard() {
-  const params = useParams();
-  // params.chainId is a string!
-  const chainId = Number(params.chainId);
+  const params = useParams()
+  const connectedChainId = Number(params.chainId)
   const { address } = useAccount()
-  const connectedChainId = Number(params.chainId);
   const { updateEntryPrice, getEntryPrice } = useEntryPrices(address)
-  
-  // Use different hooks based on chain
+
   const isKatana = connectedChainId === 747474
-  
+
   // Multi-chain portfolio data
-  const { 
-    data: multiChainData, 
-    isLoading: multiChainLoading, 
-    error: multiChainError, 
-    totalValue: multiChainTotalValue 
+  const {
+    data: multiChainData,
+    isLoading: multiChainLoading,
+    error: multiChainError,
+    refetch: refetchMultiChain
   } = usePortfolioDetailed()
-  
+
   // Katana portfolio data
-  const { 
-    tokens: katanaTokens, 
-    totalValue: katanaTotalValue, 
-    isLoading: katanaLoading, 
-    error: katanaError 
+  const {
+    tokens: katanaTokens,
+    totalValue: katanaTotalValue, // not used directly after live repricing
+    isLoading: katanaLoading,
+    error: katanaError,
+    refresh: refetchKatana
   } = useKatanaPortfolio(address || null)
 
-  console.log(multiChainData, katanaTokens);
-
   // Filter multi-chain data by connected chain ID
-  const filteredMultiChainData = multiChainData?.filter(token => token.chain_id === connectedChainId) || []
-  const filteredMultiChainTotalValue = filteredMultiChainData.reduce((total, token) => total + token.value_usd, 0)
+  const filteredMultiChainData =
+    multiChainData?.filter((token) => token.chain_id === connectedChainId) || []
 
   // Determine which data to use
   const data = isKatana ? katanaTokens : filteredMultiChainData
   const isLoading = isKatana ? katanaLoading : multiChainLoading
   const error = isKatana ? katanaError : multiChainError
-  const totalValue = isKatana ? katanaTotalValue : filteredMultiChainTotalValue
 
-  // Normalize data format
-  const normalizedData: CombinedToken[] = data ? data.map((token): CombinedToken => {
-    if (isKatana) {
-      const katanaToken = token as KatanaPortfolioToken
-      return {
-        ...katanaToken,
-        amount: katanaToken.balance,
-        price_to_usd: katanaToken.price,
-        value_usd: katanaToken.value,
-        contract_address: katanaToken.address,
+  // Addresses and helpers
+  const WETH_ADDRESS = '0xC02aaA39b223FE8d0A0e5C4F27eAD9083C756Cc2'
+  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+  const ETH_PLACEHOLDER = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+
+  const isNativeEth = (token: PortfolioToken | KatanaPortfolioToken) => {
+    const chainId = (token as any).chain_id
+    const addr =
+      ((token as any).contract_address as string | undefined) ??
+      ((token as any).address as string | undefined) ??
+      ''
+    const sym = (token as any).symbol?.toUpperCase?.()
+
+    return (
+      chainId === 1 &&
+      (
+        !addr ||
+        addr === ZERO_ADDRESS ||
+        addr.toLowerCase() === ETH_PLACEHOLDER ||
+        sym === 'ETH'
+      )
+    )
+  }
+
+  
+
+  // Prepare token pairs - map native ETH -> WETH, de-dup addresses
+  const tokenPairs = useMemo(() => {
+    if (!data) return []
+    const uniqueAddresses = new Set<string>()
+    const pairs: Array<{ addressOne: `0x${string}`; chainId: 1 | 747474 }> = []
+
+    data.forEach((token) => {
+      let address: string | undefined = isKatana
+        ? (token as KatanaPortfolioToken).address
+        : (token as PortfolioToken).contract_address
+
+      // Map native ETH (and 0xeeee / zero addr / missing addr on mainnet) to WETH
+      if (!isKatana && isNativeEth(token)) {
+        address = WETH_ADDRESS
+      } else if (address?.toLowerCase() === ETH_PLACEHOLDER) {
+        address = WETH_ADDRESS
       }
-    } else {
-      const portfolioToken = token as PortfolioToken
-      return {
-        ...portfolioToken,
-        address: portfolioToken.contract_address,
+
+      if (address && address.startsWith('0x')) {
+        const key = address.toLowerCase()
+        if (!uniqueAddresses.has(key)) {
+          uniqueAddresses.add(key)
+          // narrow to union you support
+          const cid = (connectedChainId === 1 ? 1 : 747474) as 1 | 747474
+          pairs.push({ addressOne: address as `0x${string}`, chainId: cid })
+        }
       }
+    })
+
+    return pairs
+  }, [data, isKatana, connectedChainId])
+
+  // Fetch real-time prices
+  const {
+    data: priceData,
+    isLoading: pricesLoading,
+    error: pricesError,
+    refetch: refetchPrices
+  } = useBatchPriceBackend(tokenPairs, {
+    enabled: Boolean(data && data.length > 0),
+    refetchInterval: 30000,
+    staleTime: 15000,
+  })
+
+  const handleRefresh = () => {
+  if (isKatana) {
+    refetchKatana()
+  } else {
+    refetchMultiChain()
+  }
+  refetchPrices()
+}
+
+  // Create price lookup map
+  const priceMap = useMemo(() => {
+    if (!priceData) return {}
+    const map: Record<string, number> = {}
+    tokenPairs.forEach((pair, index) => {
+      const result = priceData[index]
+      if (result?.success && result.data !== null) {
+        map[pair.addressOne.toLowerCase()] = result.data
+      }
+    })
+    return map
+  }, [priceData, tokenPairs])
+
+  // Get price for any token (handles native ETH -> WETH mapping)
+  const getTokenPrice = (
+    tokenAddress: string | undefined,
+    token?: CombinedToken
+  ): number | null => {
+    // If ETH on mainnet, always use WETH price
+    if (!isKatana && token && isNativeEth(token as any)) {
+      return priceMap[WETH_ADDRESS.toLowerCase()] ?? null
     }
-  }) : []
+    if (!tokenAddress) return null
+    const lower = tokenAddress.toLowerCase()
+    if (lower === ETH_PLACEHOLDER || tokenAddress === ZERO_ADDRESS) {
+      return priceMap[WETH_ADDRESS.toLowerCase()] ?? null
+    }
+    return priceMap[lower] ?? null
+  }
+
+  // Normalize data format with real-time prices (and force ETH row to use WETH address for LIVE badge)
+  const normalizedData: CombinedToken[] = data
+    ? data.map((token): CombinedToken => {
+        const originalTokenAddress = isKatana
+          ? (token as KatanaPortfolioToken).address
+          : (token as PortfolioToken).contract_address
+
+        const realtimePrice = getTokenPrice(
+          originalTokenAddress,
+          token as any
+        )
+        const fallbackPrice = isKatana
+          ? (token as KatanaPortfolioToken).price
+          : (token as PortfolioToken).price_to_usd
+
+        const finalPrice = realtimePrice ?? fallbackPrice
+
+        if (isKatana) {
+          const t = token as KatanaPortfolioToken
+          const value = t.balance * finalPrice
+          return {
+            ...t,
+            amount: t.balance,
+            price_to_usd: finalPrice,
+            value_usd: value,
+            contract_address: t.address,
+          }
+        } else {
+          const t = token as PortfolioToken
+          const isEth = isNativeEth(t)
+          const value = t.amount * finalPrice
+          return {
+            ...t,
+            // Force native ETH to present with WETH address so downstream checks see it as LIVE
+            address: isEth ? WETH_ADDRESS : t.contract_address,
+            price_to_usd: finalPrice,
+            value_usd: value,
+          }
+        }
+      })
+    : []
+
+  // Recalculate total with updated prices
+  const updatedTotalValue = normalizedData.reduce(
+    (total, token) => total + token.value_usd,
+    0
+  )
 
   // Calculate custom totals based on user-defined entry prices
   const calculateCustomTotals = () => {
     if (!normalizedData.length) return { customTotalPnL: 0, customTotalROI: 0 }
 
     const tokenCalculations = normalizedData.map((token) => {
-      const tokenKey = generateTokenKey(token.chain_id, token.contract_address || token.address || '')
-      const defaultEntryPrice = isKatana ? token.price_to_usd : token.price_to_usd
+      const tokenKey = generateTokenKey(
+        token.chain_id,
+        token.contract_address || token.address || ''
+      )
+      const defaultEntryPrice = token.price_to_usd
       const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
-      
+
       return {
         amount: token.amount,
         currentPrice: token.price_to_usd,
@@ -110,6 +248,8 @@ export function TokenBalancesCard() {
 
   const { customTotalPnL, customTotalROI } = calculateCustomTotals()
 
+  
+
   if (!address) {
     return (
       <div className="w-full relative z-50">
@@ -117,7 +257,7 @@ export function TokenBalancesCard() {
           <div className="text-center py-8 relative z-50">
             <h2 className="text-xl font-semibold mb-2">Connect Your Wallet</h2>
             <p className="text-gray-400 text-sm">
-              Connect your wallet to view your token balances and P&L
+              Connect your wallet to view your token balances and P&amp;L
             </p>
           </div>
         </div>
@@ -129,12 +269,27 @@ export function TokenBalancesCard() {
     return (
       <div className="w-full relative z-50">
         <div className="w-full p-4 sm:p-6 md:p-8 rounded-2xl text-white font-sans bg-transparent relative z-50">
-          <div className="text-lg sm:text-xl font-semibold mb-4">
-            Portfolio Overview
-          </div>
+          <div className="text-lg sm:text-xl font-semibold mb-4 flex items-center justify-between">
+  <span>Portfolio Overview</span>
+  <Tooltip title="Refresh data">
+    <IconButton
+      size="small"
+      color="inherit"
+      onClick={handleRefresh}
+      disabled={isLoading || pricesLoading}
+    >
+      {isLoading || pricesLoading ? (
+        <CircularProgress size={16} color="inherit" />
+      ) : (
+        <RefreshIcon fontSize="small" />
+      )}
+    </IconButton>
+  </Tooltip>
+</div>
           <div className="text-center py-8 relative z-50">
             <div className="text-red-400 text-sm">
-              Failed to load portfolio data: {typeof error === 'string' ? error : 'Unknown error'}
+              Failed to load portfolio data:{' '}
+              {typeof error === 'string' ? error : 'Unknown error'}
             </div>
           </div>
         </div>
@@ -142,12 +297,14 @@ export function TokenBalancesCard() {
     )
   }
 
+  const isDataLoading = isLoading || pricesLoading
+
   return (
     <div className="w-full relative z-50">
       <div className="w-full p-4 sm:p-6 md:p-8 rounded-2xl text-white font-sans bg-transparent relative z-50">
         {/* Portfolio Summary */}
-        <PortfolioSummary 
-          totalValue={totalValue}
+        <PortfolioSummary
+          totalValue={updatedTotalValue}
           customTotalPnL={customTotalPnL}
           customTotalROI={customTotalROI}
         />
@@ -156,22 +313,26 @@ export function TokenBalancesCard() {
         <div className="mb-4">
           <div className="text-sm text-gray-400 flex items-center gap-2">
             {isKatana ? (
-              <>
-                <span>Showing Katana Network tokens</span>
-              </>
+              <span>Showing Katana Network tokens</span>
             ) : (
-              <>
-                <span>Showing {CHAIN_NAMES[connectedChainId] || `Chain ${connectedChainId}`} tokens</span>
-              </>
+              <span>
+                Showing {CHAIN_NAMES[connectedChainId] || `Chain ${connectedChainId}`} tokens
+              </span>
+            )}
+            {pricesLoading && (
+              <span className="text-yellow-400 text-xs">• Updating prices...</span>
+            )}
+            {pricesError && (
+              <span className="text-red-400 text-xs">• Price fetch error</span>
             )}
           </div>
         </div>
 
         {/* Content */}
         <div className="w-full relative z-50">
-          {isLoading ? (
+          {isDataLoading ? (
             <div className="w-full flex justify-center py-8 relative z-50">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00F5E0]"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00F5E0]" />
             </div>
           ) : normalizedData && normalizedData.length > 0 ? (
             <>
@@ -180,47 +341,40 @@ export function TokenBalancesCard() {
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="text-base font-semibold border-b border-[rgba(255,255,255,0.1)]">
-                      <th className="text-left font-medium pb-4 text-[#00F5E0]">
-                        Asset
-                      </th>
-                      <th className="text-right font-medium pb-4 text-[#00F5E0]">
-                        Balance
-                      </th>
+                      <th className="text-left font-medium pb-4 text-[#00F5E0]">Asset</th>
+                      <th className="text-right font-medium pb-4 text-[#00F5E0]">Balance</th>
                       <th className="text-center font-medium pb-4 text-[rgb(0,245,224)]">
-                        Entry Price
-                        <span className='text-[white] text-[10px] ml-3'>Edit</span>
+                        Entry Price <span className="text-[white] text-[10px] ml-3">Edit</span>
                       </th>
                       <th className="text-center font-medium pb-4 text-[#00F5E0]">
-                        Current Price
+                        Current Price {pricesLoading && <span className="text-yellow-400 ml-1">⟳</span>}
                       </th>
-                      <th className="text-center font-medium pb-4 text-[#00F5E0]">
-                        Value
-                      </th>
-                      <th className="text-center font-medium pb-4 text-[#00F5E0]">
-                        P&L
-                      </th>
-                      <th className="text-center font-medium pb-4 text-[#00F5E0]">
-                        ROI
-                      </th>
+                      <th className="text-center font-medium pb-4 text-[#00F5E0]">Value</th>
+                      <th className="text-center font-medium pb-4 text-[#00F5E0]">P&amp;L</th>
+                      <th className="text-center font-medium pb-4 text-[#00F5E0]">ROI</th>
                     </tr>
                   </thead>
                   <tbody>
                     {normalizedData.map((token: CombinedToken) => {
                       const tokenLogo = getTokenLogo(token.symbol, token.chain_id)
                       const chainName = CHAIN_NAMES[token.chain_id] || `Chain ${token.chain_id}`
-                      const tokenKey = generateTokenKey(token.chain_id, token.contract_address || token.address || '')
-                      
-                      // Calculate default entry price
+                      const tokenKey = generateTokenKey(
+                        token.chain_id,
+                        token.contract_address || token.address || ''
+                      )
+
                       const defaultEntryPrice = token.price_to_usd
                       const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
-                      
-                      // Calculate custom P&L and ROI
+
                       const { pnl: customPnL, roi: customROI } = calculateTokenPnL(
                         token.amount,
                         token.price_to_usd,
                         entryPrice
                       )
-                      
+
+                      const tokenAddress = token.contract_address || token.address
+                      const hasRealtimePrice = getTokenPrice(tokenAddress, token) !== null
+
                       return (
                         <tr
                           key={tokenKey}
@@ -234,14 +388,14 @@ export function TokenBalancesCard() {
                                   alt={token.symbol}
                                   className="w-8 h-8 rounded-full"
                                   onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    const fallback = target.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'flex';
+                                    const target = e.target as HTMLImageElement
+                                    target.style.display = 'none'
+                                    const fallback = target.nextElementSibling as HTMLElement
+                                    if (fallback) fallback.style.display = 'flex'
                                   }}
                                 />
                               ) : null}
-                              <div 
+                              <div
                                 className="w-8 h-8 rounded-full bg-gradient-to-r from-gray-600 to-gray-800 flex items-center justify-center"
                                 style={{ display: tokenLogo ? 'none' : 'flex' }}
                               >
@@ -255,6 +409,11 @@ export function TokenBalancesCard() {
                                   <span className="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300">
                                     {chainName}
                                   </span>
+                                  {/* {hasRealtimePrice && (
+                                    <span className="text-xs bg-green-600 px-1.5 py-0.5 rounded text-white">
+                                      LIVE
+                                    </span>
+                                  )} */}
                                 </div>
                                 <div className="text-xs text-gray-400">{token.name}</div>
                               </div>
@@ -272,20 +431,28 @@ export function TokenBalancesCard() {
                             />
                           </td>
                           <td className="py-4 pl-2 pr-4 text-center">
-                            ${token.price_to_usd.toFixed(2)}
+                            <span>
+                              ${token.price_to_usd.toFixed(2)}
+                            </span>
                           </td>
                           <td className="py-4 pr-4 text-center font-medium">
                             {formatUSD(token.value_usd)}
                           </td>
-                          <td className={`py-4 pr-4 text-center font-medium ${
-                            customPnL >= 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {customPnL >= 0 ? '+' : ''}{formatUSD(customPnL)}
+                          <td
+                            className={`py-4 pr-4 text-center font-medium ${
+                              customPnL >= 0 ? 'text-green-400' : 'text-red-400'
+                            }`}
+                          >
+                            {customPnL >= 0 ? '+' : ''}
+                            {formatUSD(customPnL)}
                           </td>
-                          <td className={`py-4 pr-4 text-right font-medium ${
-                            customROI >= 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {customROI >= 0 ? '+' : ''}{formatPercent(customROI)}
+                          <td
+                            className={`py-4 pr-4 text-right font-medium ${
+                              customROI >= 0 ? 'text-green-400' : 'text-red-400'
+                            }`}
+                          >
+                            {customROI >= 0 ? '+' : ''}
+                            {formatPercent(customROI)}
                           </td>
                         </tr>
                       )
@@ -299,19 +466,23 @@ export function TokenBalancesCard() {
                 {normalizedData.map((token: CombinedToken) => {
                   const tokenLogo = getTokenLogo(token.symbol, token.chain_id)
                   const chainName = CHAIN_NAMES[token.chain_id] || `Chain ${token.chain_id}`
-                  const tokenKey = generateTokenKey(token.chain_id, token.contract_address || token.address || '')
-                  
-                  // Calculate default entry price
+                  const tokenKey = generateTokenKey(
+                    token.chain_id,
+                    token.contract_address || token.address || ''
+                  )
+
                   const defaultEntryPrice = token.price_to_usd
                   const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
-                  
-                  // Calculate custom P&L and ROI
+
                   const { pnl: customPnL, roi: customROI } = calculateTokenPnL(
                     token.amount,
                     token.price_to_usd,
                     entryPrice
                   )
-                  
+
+                  const tokenAddress = token.contract_address || token.address
+                  const hasRealtimePrice = getTokenPrice(tokenAddress, token) !== null
+
                   return (
                     <div
                       key={tokenKey}
@@ -325,14 +496,14 @@ export function TokenBalancesCard() {
                             alt={token.symbol}
                             className="w-10 h-10 rounded-full"
                             onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const fallback = target.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                              const fallback = target.nextElementSibling as HTMLElement
+                              if (fallback) fallback.style.display = 'flex'
                             }}
                           />
                         ) : null}
-                        <div 
+                        <div
                           className="w-10 h-10 rounded-full bg-gradient-to-r from-gray-600 to-gray-800 flex items-center justify-center"
                           style={{ display: tokenLogo ? 'none' : 'flex' }}
                         >
@@ -346,19 +517,27 @@ export function TokenBalancesCard() {
                             <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">
                               {chainName}
                             </span>
+                            {/* {hasRealtimePrice && (
+                              <span className="text-xs bg-green-600 px-1.5 py-0.5 rounded text-white">
+                                LIVE
+                              </span>
+                            )} */}
                           </div>
                           <div className="text-sm text-gray-400">{token.name}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-bold">{formatUSD(token.value_usd)}</div>
-                          <div className={`text-sm font-medium ${
-                            customPnL >= 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {customPnL >= 0 ? '+' : ''}{formatUSD(customPnL)}
+                          <div
+                            className={`text-sm font-medium ${
+                              customPnL >= 0 ? 'text-green-400' : 'text-red-400'
+                            }`}
+                          >
+                            {customPnL >= 0 ? '+' : ''}
+                            {formatUSD(customPnL)}
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Token Details Grid */}
                       <div className="grid grid-cols-2 gap-4 text-sm relative z-50">
                         <div className="relative z-50">
@@ -369,7 +548,9 @@ export function TokenBalancesCard() {
                         </div>
                         <div className="relative z-50">
                           <div className="text-[#00F5E0] text-xs mb-1">Current Price</div>
-                          <div className="font-medium text-white">
+                          <div
+                            className={`font-medium `}
+                          >
                             ${token.price_to_usd.toFixed(2)}
                           </div>
                         </div>
@@ -386,10 +567,13 @@ export function TokenBalancesCard() {
                         </div>
                         <div className="relative z-50">
                           <div className="text-[#00F5E0] text-xs mb-1">ROI</div>
-                          <div className={`font-medium ${
-                            customROI >= 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {customROI >= 0 ? '+' : ''}{formatPercent(customROI)}
+                          <div
+                            className={`font-medium ${
+                              customROI >= 0 ? 'text-green-400' : 'text-red-400'
+                            }`}
+                          >
+                            {customROI >= 0 ? '+' : ''}
+                            {formatPercent(customROI)}
                           </div>
                         </div>
                       </div>
