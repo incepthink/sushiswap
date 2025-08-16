@@ -83,7 +83,6 @@ export const SimpleTokenSelector: FC<SimpleTokenSelectorProps> = ({
   })
   
   const backendTokensResult = useTokensBackend(selectedChainId)
-  console.log("backendTokensResult", backendTokensResult);
   
   
   // Choose which token source to use

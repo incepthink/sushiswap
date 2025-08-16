@@ -6,6 +6,8 @@ import TokenSelect from 'src/lib/wagmi/components/token-selector/token-lists/Tok
 import { ReactNode } from 'react'
 import { useDerivedStateCrossChainSwap } from 'src/ui/swap/cross-chain/derivedstate-cross-chain-swap-provider'
 import { useDerivedStateSimpleSwap } from 'src/ui/swap/simple/derivedstate-simple-swap-provider'
+import KatanaCandlestickChart from 'src/ui/swap/simple/KatanaCandlestickChart'
+import { useChainId } from 'wagmi'
 
 interface CommonSwapLayoutProps {
   children: ReactNode
@@ -16,6 +18,8 @@ export default function CommonSwapLayout({ children, }: CommonSwapLayoutProps) {
   const simpleSwapData = useDerivedStateSimpleSwap()
 
   const token0 = simpleSwapData?.state?.token0
+  const connectedChainId = useChainId()
+ 
   return (
     <div className="min-h-screen w-full px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-4 w-full max-w-none">
@@ -37,7 +41,8 @@ export default function CommonSwapLayout({ children, }: CommonSwapLayoutProps) {
           <div className="h-[400px] sm:h-[500px] lg:h-[600px] w-full">
             <div className="glow-box h-full w-full !p-1 relative">
               <div className="relative h-full w-full z-10 dot-pattern-cyan">
-                <ChartSpot token0={token0} />
+                {connectedChainId === 747474 ? <KatanaCandlestickChart tokenOne={token0} /> : <ChartSpot />}
+                
               </div>
             </div>
           </div>

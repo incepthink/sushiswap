@@ -1,43 +1,64 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 interface EditablePriceProps {
   tokenKey: string;
-  currentPrice: number;
-  defaultPrice: number;
+  currentPrice: number | string | null | undefined;
+  defaultPrice: number | string | null | undefined;
   onPriceChange: (price: number) => void;
 }
 
-export function EditablePrice({ 
-  tokenKey, 
-  currentPrice, 
-  defaultPrice, 
-  onPriceChange 
+function asNumber(v: number | string | null | undefined, fallback = 0): number {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  const n = typeof v === 'string' ? parseFloat(v) : NaN;
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function nearlyEqual(a: number, b: number, eps = 1e-9) {
+  return Math.abs(a - b) < eps;
+}
+
+export function EditablePrice({
+  tokenKey,
+  currentPrice,
+  defaultPrice,
+  onPriceChange,
 }: EditablePriceProps) {
+  // Normalize incoming values once per render
+  const safeDefault = useMemo(() => asNumber(defaultPrice, 0), [defaultPrice]);
+  const safeCurrent = useMemo(
+    () => asNumber(currentPrice, safeDefault),
+    [currentPrice, safeDefault]
+  );
+
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(currentPrice.toFixed(2));
+  const [editValue, setEditValue] = useState(() => safeCurrent.toFixed(2));
+
+  // Keep local state in sync if parent updates price externally
+  // (optional but helpful)
+  if (!isEditing && editValue !== safeCurrent.toFixed(2)) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    setEditValue(safeCurrent.toFixed(2));
+  }
 
   const handleSave = () => {
     const newPrice = parseFloat(editValue);
-    if (!isNaN(newPrice) && newPrice > 0) {
+    if (Number.isFinite(newPrice) && newPrice > 0) {
       onPriceChange(newPrice);
       setIsEditing(false);
     } else {
-      setEditValue(currentPrice.toFixed(2));
+      setEditValue(safeCurrent.toFixed(2));
       setIsEditing(false);
     }
   };
 
   const handleCancel = () => {
-    setEditValue(currentPrice.toFixed(2));
+    setEditValue(safeCurrent.toFixed(2));
     setIsEditing(false);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    } else if (e.key === 'Escape') {
-      handleCancel();
-    }
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleSave();
+    else if (e.key === 'Escape') handleCancel();
   };
 
   if (isEditing) {
@@ -45,27 +66,33 @@ export function EditablePrice({
       <div className="flex items-center justify-center gap-1">
         <input
           type="number"
+          inputMode="decimal"
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyPress}
           onBlur={handleSave}
-          className="w-20 px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white text-center focus:outline-none focus:border-[#00F5E0]"
+          className="w-24 px-2 py-1 text-sm bg-gray-700 border border-gray-600 rounded text-white text-center focus:outline-none focus:border-[#00F5E0]"
           autoFocus
           step="0.01"
+          min="0"
+          aria-label={`Edit price for ${tokenKey}`}
         />
       </div>
     );
   }
 
   return (
-    <div 
+    <div
       className="group flex items-center justify-center"
       onClick={() => setIsEditing(true)}
       title="Click to edit entry price"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => (e.key === 'Enter' ? setIsEditing(true) : null)}
     >
       <div className="flex justify-center gap-2 relative cursor-pointer hover:bg-gray-700 px-2 py-1 rounded transition-colors">
-        <span>${currentPrice.toFixed(2)}</span>
-        {currentPrice !== defaultPrice && (
+        <span>${safeCurrent.toFixed(2)}</span>
+        {!nearlyEqual(safeCurrent, safeDefault) && (
           <div className="text-xs text-blue-400 mt-1">Custom</div>
         )}
       </div>
