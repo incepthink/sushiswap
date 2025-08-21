@@ -51,6 +51,8 @@ export function useKatanaPrice(tokenAddress: string | null) {
       setError(null);
       
       try {
+        // console.log("URL",  `${BACKEND_URL}/api/price/katana?tokenAddress=${encodeURIComponent(tokenAddress)}`);
+        
         const response = await fetch(
           `${BACKEND_URL}/api/price/katana?tokenAddress=${encodeURIComponent(tokenAddress)}`
         );

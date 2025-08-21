@@ -33,6 +33,8 @@ import { BalancePanel } from './BalancePanel'
 import { PricePanel } from './PricePanel'
 import { usePriceBackend } from './usePriceBackend'
 import { SimpleTokenSelector } from '../../token-selector/token-lists/SimpleTokenSelector'
+import SearchIcon from "@mui/icons-material/Search";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 // Add BACKEND_URL constant or import it
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000'
@@ -67,6 +69,7 @@ interface CurrencyInputProps {
   onNetworkChange?: (network: number) => void
   tokenSelectorOnly?: boolean  // NEW PROP
   crossChain?: boolean
+  topSelect?: boolean
 }
 
 const CurrencyInput: FC<CurrencyInputProps> = ({
@@ -99,6 +102,7 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   onNetworkChange,
   tokenSelectorOnly = false,  // NEW PROP
   crossChain= false,
+  topSelect = false
 }) => {
   const isMounted = useIsMounted()
 
@@ -116,13 +120,16 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   const tokenAddress = currency?.wrapped?.address
 
   // Use Katana price hook for Katana network
-  const { 
-    price: katanaPrice, 
-    loading: isKatanaPriceLoading,
-    error: katanaPriceError 
-  } = useKatanaPrice(
-    isKatana ? tokenAddress || null : null, 
-  )
+  // const { 
+  //   price: katanaPrice, 
+  //   loading: isKatanaPriceLoading,
+  //   error: katanaPriceError 
+  // } = useKatanaPrice(
+  //   isKatana ? tokenAddress || null : null, 
+  // )
+
+  // console.log("KATANA PRICE", katanaPrice);
+  
 
   // Use backend price hook for other networks
   const { 
@@ -141,21 +148,21 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
   
 
   // Determine which price and loading state to use
-  const price = isKatana ? katanaPrice || undefined : backendPrice || undefined
-  const isPriceLoading = isKatana ? isKatanaPriceLoading : isBackendPriceLoading
+  const price =  backendPrice || undefined
+  const isPriceLoading = isBackendPriceLoading
 
   // Log price information for debugging
-  useEffect(() => {
-    if (currency && !hidePricing) {
-      console.log(`Price for ${currency.symbol} on chain ${chainId}:`, {
-        isKatana,
-        tokenAddress,
-        price,
-        loading: isPriceLoading,
-        error: katanaPriceError
-      })
-    }
-  }, [currency, chainId, isKatana, tokenAddress, price, isPriceLoading, katanaPriceError, hidePricing])
+  // useEffect(() => {
+  //   if (currency && !hidePricing) {
+  //     console.log(`Price for ${currency.symbol} on chain ${chainId}:`, {
+  //       isKatana,
+  //       tokenAddress,
+  //       price,
+  //       loading: isPriceLoading,
+  //       error: katanaPriceError
+  //     })
+  //   }
+  // }, [currency, chainId, isKatana, tokenAddress, price, isPriceLoading, katanaPriceError, hidePricing])
 
   const _value = useMemo(
     () => tryParseAmount(value, currency),
@@ -184,8 +191,7 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
     ? error
     : insufficientBalance
       ? 'Exceeds Balance'
-      : katanaPriceError && isKatana
-        ? `Price Error: ${katanaPriceError}`
+     
         : undefined
 
   const _onChange = useCallback(
@@ -218,7 +224,25 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
       crossChain={crossChain}
       onNetworkChange={onNetworkChange}
     >
-      <Button
+      {topSelect ? <div
+      className="relative cursor-pointer"
+      role="button"
+      tabIndex={0}
+    >
+      {/* Search Input Appearance */}
+      <div className="glow-box max-w-xs px-4 py-3 rounded-sm flex items-center gap-3 border border-gray-600 hover:border-gray-500 transition-colors duration-200">
+        {/* Search Icon */}
+        <SearchIcon className="text-gray-400 w-5 h-5" />
+        
+        {/* Token Display or Placeholder */}
+        <div className="flex items-center gap-3 flex-1">
+          <span className="text-gray-400">Search for a token...</span>
+        </div>
+        
+        {/* Dropdown Arrow */}
+        <ArrowDropDownIcon className="text-gray-400 w-5 h-5" />
+      </div>
+    </div> : <Button
         data-state={currencyLoading ? 'inactive' : 'active'}
         size="xl"
         variant={currency ? 'secondary' : 'default'}
@@ -288,7 +312,8 @@ const CurrencyInput: FC<CurrencyInputProps> = ({
         ) : (
           tokenSelectorOnly ? 'Select Token' : 'Select token'
         )}
-      </Button>
+      </Button>}
+      
     </SimpleTokenSelector>
   )
 }, [

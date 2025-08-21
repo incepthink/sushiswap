@@ -29,6 +29,9 @@ const fetchTokenPriceSushi = async (
   console.log("ADDRESS SUSHI::", tokenAddress);
   
   try {
+    // console.log("URL", `${SUSHI_API_BASE}/${chainId}/${tokenAddress}`);
+    
+
     const { data } = await axios.get(
       `${SUSHI_API_BASE}/${chainId}/${tokenAddress}`,
       {

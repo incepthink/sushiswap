@@ -39,23 +39,48 @@ const getTokenLogo = (symbol: string, chainId: number) => {
 }
 
 // Custom hook for managing entry prices in localStorage
-const useEntryPrices = (address: string | undefined) => {
+const useEntryPrices = (address: string | undefined, data: PortfolioToken[] | undefined | null) => {
   const [entryPrices, setEntryPrices] = useState<{ [key: string]: number }>({})
+  const [isInitialized, setIsInitialized] = useState(false)
 
+  // Initialize entry prices when data first loads
   useEffect(() => {
-    if (!address) return
+    if (!address || !data || isInitialized) return
 
     const storageKey = `entry_prices_${address}`
     const stored = localStorage.getItem(storageKey)
+    let storedEntryPrices: { [key: string]: number } = {}
+
     if (stored) {
       try {
-        setEntryPrices(JSON.parse(stored))
+        storedEntryPrices = JSON.parse(stored)
       } catch (error) {
         console.error('Error parsing stored entry prices:', error)
-        setEntryPrices({})
       }
     }
-  }, [address])
+
+    // Initialize entry prices for tokens that don't have stored prices
+    const newEntryPrices = { ...storedEntryPrices }
+    let hasNewPrices = false
+
+    data.forEach((token) => {
+      const tokenKey = `${token.chain_id}-${token.contract_address}`
+      if (!(tokenKey in newEntryPrices)) {
+        // Use current price as initial entry price
+        newEntryPrices[tokenKey] = token.price_to_usd
+        hasNewPrices = true
+      }
+    })
+
+    setEntryPrices(newEntryPrices)
+    
+    // Save to localStorage if we added new prices
+    if (hasNewPrices) {
+      localStorage.setItem(storageKey, JSON.stringify(newEntryPrices))
+    }
+    
+    setIsInitialized(true)
+  }, [address, data, isInitialized])
 
   const updateEntryPrice = (tokenKey: string, price: number) => {
     if (!address) return
@@ -71,7 +96,12 @@ const useEntryPrices = (address: string | undefined) => {
     return entryPrices[tokenKey] ?? defaultPrice
   }
 
-  return { entryPrices, updateEntryPrice, getEntryPrice }
+  const hasCustomPrice = (tokenKey: string, defaultPrice: number) => {
+    const storedPrice = entryPrices[tokenKey]
+    return storedPrice !== undefined && Math.abs(storedPrice - defaultPrice) > 0.01
+  }
+
+  return { entryPrices, updateEntryPrice, getEntryPrice, hasCustomPrice, isInitialized }
 }
 
 // Editable price input component
@@ -79,12 +109,14 @@ const EditablePrice = ({
   tokenKey, 
   currentPrice, 
   defaultPrice, 
-  onPriceChange 
+  onPriceChange,
+  hasCustomPrice 
 }: {
   tokenKey: string
   currentPrice: number
   defaultPrice: number
   onPriceChange: (price: number) => void
+  hasCustomPrice: boolean
 }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(currentPrice.toFixed(2))
@@ -132,23 +164,15 @@ const EditablePrice = ({
 
   return (
     <div 
-      className=" group flex items-center justify-center"
+      className="group flex items-center justify-center"
       onClick={() => setIsEditing(true)}
       title="Click to edit entry price"
     >
-      <div className="flex justify-center gap-2 relative  cursor-pointer hover:bg-gray-700 px-2 py-1 rounded transition-colors">
+      <div className="flex justify-center gap-2 relative cursor-pointer hover:bg-gray-700 px-2 py-1 rounded transition-colors">
         <span>${currentPrice.toFixed(2)}</span>
-        {/* <svg 
-          className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg> */}
-      {currentPrice !== defaultPrice && (
-        <div className="text-xs text-blue-400 mt-1 ">Custom</div>
-      )}
+        {hasCustomPrice && (
+          <div className="text-xs text-blue-400 mt-1">Custom</div>
+        )}
       </div>
     </div>
   )
@@ -168,34 +192,40 @@ export function TokenBalancesCard() {
   const balanceFunc = async (walletAddress: string) => {
     const res = await axios.get(`${BACKEND_URL}/api/balance/katana?address=${walletAddress}`)
     console.log("BALANCE API", res.data);
-    
   }
-
-  
 
   useEffect(() => {
     balanceFunc("0x314Ab1044316e62dCDdbC87c2df57F1254b4B4A6")
   }, [])
   
-  
-
-  const { updateEntryPrice, getEntryPrice } = useEntryPrices(address)
+  const { updateEntryPrice, getEntryPrice, hasCustomPrice, isInitialized } = useEntryPrices(address, data)
 
   const connectedChainId = useChainId()
 
   // Calculate custom totals based on user-defined entry prices
   const calculateCustomTotals = () => {
-    if (!data) return { customTotalPnL: 0, customTotalROI: 0 }
+    console.log("NAN debug", data, isInitialized);
+    
+    if (!data || !isInitialized) return { customTotalPnL: 0, customTotalROI: 0 }
 
     let customTotalPnL = 0
     let totalInvested = 0
 
     data.forEach((token) => {
       const tokenKey = `${token.chain_id}-${token.contract_address}`
-      const entryPrice = getEntryPrice(tokenKey, token.price_to_usd - (token.abs_profit_usd / token.amount))
+      const entryPrice = getEntryPrice(tokenKey, token.price_to_usd)
+      
+      // Ensure we have valid numbers
+      if (isNaN(entryPrice) || isNaN(token.amount) || isNaN(token.value_usd)) {
+        console.warn(`Invalid data for token ${token.symbol}:`, { entryPrice, amount: token.amount, value: token.value_usd })
+        return
+      }
+      
       const investedValue = entryPrice * token.amount
       const currentValue = token.value_usd
       const tokenPnL = currentValue - investedValue
+
+      console.log("PNL", tokenPnL);
 
       customTotalPnL += tokenPnL
       totalInvested += investedValue
@@ -261,7 +291,7 @@ export function TokenBalancesCard() {
               <div className={`text-lg sm:text-xl font-semibold ${
                 customTotalPnL >= 0 ? 'text-green-400' : 'text-red-400'
               }`}>
-                {customTotalPnL >= 0 ? '+' : ''}${customTotalPnL.toFixed(2)}
+                {isNaN(customTotalPnL) ? '$NaN' : `${customTotalPnL >= 0 ? '+' : ''}$${customTotalPnL.toFixed(2)}`}
               </div>
               <div className="text-xs text-gray-400">Custom P&L</div>
             </div>
@@ -270,7 +300,7 @@ export function TokenBalancesCard() {
               <div className={`text-lg sm:text-xl font-semibold ${
                 customTotalROI >= 0 ? 'text-green-400' : 'text-red-400'
               }`}>
-                {customTotalROI >= 0 ? '+' : ''}{formatPercent(customTotalROI)}
+                {isNaN(customTotalROI) ? 'NaN%' : `${customTotalROI >= 0 ? '+' : ''}${formatPercent(customTotalROI)}`}
               </div>
               <div className="text-xs text-gray-400">Custom ROI</div>
             </div>
@@ -298,7 +328,6 @@ export function TokenBalancesCard() {
                       </th>
                       <th className="text-center font-medium pb-4 text-[rgb(0,245,224)]">
                         Entry Price
-                        {/* <Chip size='small' sx={{color: "black", backgroundColor: "rgba(0,245,224,0.8)"}} label="Edit" /> */}
                         <span className='text-[white] text-[10px] ml-3'>Edit</span>
                       </th>
                       <th className="text-center font-medium pb-4 text-[#00F5E0]">
@@ -321,17 +350,25 @@ export function TokenBalancesCard() {
                       const chainName = CHAIN_NAMES[token.chain_id] || `Chain ${token.chain_id}`
                       const tokenKey = `${token.chain_id}-${token.contract_address}`
                       
-                      // Calculate default entry price from API data
-                      const apiEntryPrice = token.price_to_usd
-                      const entryPrice = getEntryPrice(tokenKey, apiEntryPrice)
+                      // Use current price as default entry price
+                      const defaultEntryPrice = token.price_to_usd
+                      const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
+                      const isCustom = hasCustomPrice(tokenKey, defaultEntryPrice)
                       
                       // Calculate custom P&L and ROI based on user entry price
                       const investedValue = entryPrice * token.amount
-                      console.log(entryPrice, token.amount, investedValue, tokenLogo);
-                      
                       const currentValue = token.value_usd
                       const customPnL = currentValue - investedValue
                       const customROI = investedValue > 0 ? customPnL / investedValue : 0
+                      
+                      console.log(`Token ${token.symbol}:`, { 
+                        entryPrice, 
+                        amount: token.amount, 
+                        investedValue, 
+                        currentValue, 
+                        customPnL, 
+                        customROI 
+                      });
                       
                       return (
                         <tr
@@ -375,12 +412,13 @@ export function TokenBalancesCard() {
                           <td className="py-4 pr-4 text-right">
                             <FormattedNumber number={token.amount.toString()} />
                           </td>
-                          <td className="py-4  text-center">
+                          <td className="py-4 text-center">
                             <EditablePrice
                               tokenKey={tokenKey}
                               currentPrice={entryPrice}
-                              defaultPrice={apiEntryPrice}
+                              defaultPrice={defaultEntryPrice}
                               onPriceChange={(price) => updateEntryPrice(tokenKey, price)}
+                              hasCustomPrice={isCustom}
                             />
                           </td>
                           <td className="py-4 pl-2 pr-4 text-center">
@@ -392,12 +430,12 @@ export function TokenBalancesCard() {
                           <td className={`py-4 pr-4 text-center font-medium ${
                             customPnL >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {customPnL >= 0 ? '+' : ''}{formatUSD(customPnL)}
+                            {isNaN(customPnL) ? '$NaN' : `${customPnL >= 0 ? '+' : ''}${formatUSD(customPnL)}`}
                           </td>
                           <td className={`py-4 pr-4 text-right font-medium ${
                             customROI >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {customROI >= 0 ? '+' : ''}{formatPercent(customROI)}
+                            {isNaN(customROI) ? 'NaN%' : `${customROI >= 0 ? '+' : ''}${formatPercent(customROI)}`}
                           </td>
                         </tr>
                       )
@@ -413,9 +451,10 @@ export function TokenBalancesCard() {
                   const chainName = CHAIN_NAMES[token.chain_id] || `Chain ${token.chain_id}`
                   const tokenKey = `${token.chain_id}-${token.contract_address}`
                   
-                  // Calculate default entry price from API data
-                  const apiEntryPrice = token.price_to_usd - (token.abs_profit_usd / token.amount)
-                  const entryPrice = getEntryPrice(tokenKey, apiEntryPrice)
+                  // Use current price as default entry price
+                  const defaultEntryPrice = token.price_to_usd
+                  const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
+                  const isCustom = hasCustomPrice(tokenKey, defaultEntryPrice)
                   
                   // Calculate custom P&L and ROI based on user entry price
                   const investedValue = entryPrice * token.amount
@@ -465,7 +504,7 @@ export function TokenBalancesCard() {
                           <div className={`text-sm font-medium ${
                             customPnL >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {customPnL >= 0 ? '+' : ''}{formatUSD(customPnL)}
+                            {isNaN(customPnL) ? '$NaN' : `${customPnL >= 0 ? '+' : ''}${formatUSD(customPnL)}`}
                           </div>
                         </div>
                       </div>
@@ -490,8 +529,9 @@ export function TokenBalancesCard() {
                             <EditablePrice
                               tokenKey={tokenKey}
                               currentPrice={entryPrice}
-                              defaultPrice={apiEntryPrice}
+                              defaultPrice={defaultEntryPrice}
                               onPriceChange={(price) => updateEntryPrice(tokenKey, price)}
+                              hasCustomPrice={isCustom}
                             />
                           </div>
                         </div>
@@ -500,7 +540,7 @@ export function TokenBalancesCard() {
                           <div className={`font-medium ${
                             customROI >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {customROI >= 0 ? '+' : ''}{formatPercent(customROI)}
+                            {isNaN(customROI) ? 'NaN%' : `${customROI >= 0 ? '+' : ''}${formatPercent(customROI)}`}
                           </div>
                         </div>
                       </div>

@@ -17,7 +17,7 @@ import {
   generateTokenKey,
 } from './portfolioUtils'
 import { useParams } from 'next/navigation'
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { IconButton, Tooltip, CircularProgress } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 
@@ -37,8 +37,7 @@ export function TokenBalancesCard() {
   const params = useParams()
   const connectedChainId = Number(params.chainId)
   const { address } = useAccount()
-  const { updateEntryPrice, getEntryPrice } = useEntryPrices(address)
-
+  
   const isKatana = connectedChainId === 747474
 
   // Multi-chain portfolio data
@@ -91,8 +90,6 @@ export function TokenBalancesCard() {
     )
   }
 
-  
-
   // Prepare token pairs - map native ETH -> WETH, de-dup addresses
   const tokenPairs = useMemo(() => {
     if (!data) return []
@@ -138,13 +135,13 @@ export function TokenBalancesCard() {
   })
 
   const handleRefresh = () => {
-  if (isKatana) {
-    refetchKatana()
-  } else {
-    refetchMultiChain()
+    if (isKatana) {
+      refetchKatana()
+    } else {
+      refetchMultiChain()
+    }
+    refetchPrices()
   }
-  refetchPrices()
-}
 
   // Create price lookup map
   const priceMap = useMemo(() => {
@@ -218,37 +215,54 @@ export function TokenBalancesCard() {
       })
     : []
 
+  // Initialize entry prices hook with normalized data
+  const { updateEntryPrice, getEntryPrice, hasCustomPrice, isInitialized } = useEntryPrices(address, normalizedData)
+
   // Recalculate total with updated prices
   const updatedTotalValue = normalizedData.reduce(
-    (total, token) => total + token.value_usd,
+    (total, token) => total + (isNaN(token.value_usd) ? 0 : token.value_usd),
     0
   )
 
   // Calculate custom totals based on user-defined entry prices
   const calculateCustomTotals = () => {
-    if (!normalizedData.length) return { customTotalPnL: 0, customTotalROI: 0 }
+    if (!normalizedData.length || !isInitialized) return { customTotalPnL: 0, customTotalROI: 0 }
 
-    const tokenCalculations = normalizedData.map((token) => {
+    let customTotalPnL = 0
+    let totalInvested = 0
+
+    normalizedData.forEach((token) => {
       const tokenKey = generateTokenKey(
         token.chain_id,
         token.contract_address || token.address || ''
       )
+      // Use current price as default entry price
       const defaultEntryPrice = token.price_to_usd
       const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
 
-      return {
-        amount: token.amount,
-        currentPrice: token.price_to_usd,
-        entryPrice,
+      // Ensure we have valid numbers
+      if (isNaN(entryPrice) || isNaN(token.amount) || isNaN(token.value_usd)) {
+        console.warn(`Invalid data for token ${token.symbol}:`, { 
+          entryPrice, 
+          amount: token.amount, 
+          value: token.value_usd 
+        })
+        return
       }
+
+      const investedValue = entryPrice * token.amount
+      const currentValue = token.value_usd
+      const tokenPnL = currentValue - investedValue
+
+      customTotalPnL += tokenPnL
+      totalInvested += investedValue
     })
 
-    return calculatePortfolioTotals(tokenCalculations)
+    const customTotalROI = totalInvested > 0 ? customTotalPnL / totalInvested : 0
+    return { customTotalPnL, customTotalROI }
   }
 
   const { customTotalPnL, customTotalROI } = calculateCustomTotals()
-
-  
 
   if (!address) {
     return (
@@ -270,22 +284,22 @@ export function TokenBalancesCard() {
       <div className="w-full relative z-50">
         <div className="w-full p-4 sm:p-6 md:p-8 rounded-2xl text-white font-sans bg-transparent relative z-50">
           <div className="text-lg sm:text-xl font-semibold mb-4 flex items-center justify-between">
-  <span>Portfolio Overview</span>
-  <Tooltip title="Refresh data">
-    <IconButton
-      size="small"
-      color="inherit"
-      onClick={handleRefresh}
-      disabled={isLoading || pricesLoading}
-    >
-      {isLoading || pricesLoading ? (
-        <CircularProgress size={16} color="inherit" />
-      ) : (
-        <RefreshIcon fontSize="small" />
-      )}
-    </IconButton>
-  </Tooltip>
-</div>
+            <span>Portfolio Overview</span>
+            <Tooltip title="Refresh data">
+              <IconButton
+                size="small"
+                color="inherit"
+                onClick={handleRefresh}
+                disabled={isLoading || pricesLoading}
+              >
+                {isLoading || pricesLoading ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <RefreshIcon fontSize="small" />
+                )}
+              </IconButton>
+            </Tooltip>
+          </div>
           <div className="text-center py-8 relative z-50">
             <div className="text-red-400 text-sm">
               Failed to load portfolio data:{' '}
@@ -305,8 +319,8 @@ export function TokenBalancesCard() {
         {/* Portfolio Summary */}
         <PortfolioSummary
           totalValue={updatedTotalValue}
-          customTotalPnL={customTotalPnL}
-          customTotalROI={customTotalROI}
+          customTotalPnL={isNaN(customTotalPnL) ? 0 : customTotalPnL}
+          customTotalROI={isNaN(customTotalROI) ? 0 : customTotalROI}
         />
 
         {/* Chain Indicator */}
@@ -363,8 +377,10 @@ export function TokenBalancesCard() {
                         token.contract_address || token.address || ''
                       )
 
+                      // Use current price as default entry price
                       const defaultEntryPrice = token.price_to_usd
                       const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
+                      const isCustom = hasCustomPrice(tokenKey, defaultEntryPrice)
 
                       const { pnl: customPnL, roi: customROI } = calculateTokenPnL(
                         token.amount,
@@ -374,6 +390,15 @@ export function TokenBalancesCard() {
 
                       const tokenAddress = token.contract_address || token.address
                       const hasRealtimePrice = getTokenPrice(tokenAddress, token) !== null
+
+                      console.log(`Token ${token.symbol}:`, {
+                        entryPrice,
+                        amount: token.amount,
+                        currentPrice: token.price_to_usd,
+                        customPnL,
+                        customROI,
+                        isCustom
+                      })
 
                       return (
                         <tr
@@ -409,11 +434,6 @@ export function TokenBalancesCard() {
                                   <span className="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300">
                                     {chainName}
                                   </span>
-                                  {/* {hasRealtimePrice && (
-                                    <span className="text-xs bg-green-600 px-1.5 py-0.5 rounded text-white">
-                                      LIVE
-                                    </span>
-                                  )} */}
                                 </div>
                                 <div className="text-xs text-gray-400">{token.name}</div>
                               </div>
@@ -428,6 +448,7 @@ export function TokenBalancesCard() {
                               currentPrice={entryPrice}
                               defaultPrice={defaultEntryPrice}
                               onPriceChange={(price) => updateEntryPrice(tokenKey, price)}
+                              hasCustomPrice={isCustom}
                             />
                           </td>
                           <td className="py-4 pl-2 pr-4 text-center">
@@ -443,16 +464,14 @@ export function TokenBalancesCard() {
                               customPnL >= 0 ? 'text-green-400' : 'text-red-400'
                             }`}
                           >
-                            {customPnL >= 0 ? '+' : ''}
-                            {formatUSD(customPnL)}
+                            {isNaN(customPnL) ? '$NaN' : `${customPnL >= 0 ? '+' : ''}${formatUSD(customPnL)}`}
                           </td>
                           <td
                             className={`py-4 pr-4 text-right font-medium ${
                               customROI >= 0 ? 'text-green-400' : 'text-red-400'
                             }`}
                           >
-                            {customROI >= 0 ? '+' : ''}
-                            {formatPercent(customROI)}
+                            {isNaN(customROI) ? 'NaN%' : `${customROI >= 0 ? '+' : ''}${formatPercent(customROI)}`}
                           </td>
                         </tr>
                       )
@@ -471,8 +490,10 @@ export function TokenBalancesCard() {
                     token.contract_address || token.address || ''
                   )
 
+                  // Use current price as default entry price
                   const defaultEntryPrice = token.price_to_usd
                   const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
+                  const isCustom = hasCustomPrice(tokenKey, defaultEntryPrice)
 
                   const { pnl: customPnL, roi: customROI } = calculateTokenPnL(
                     token.amount,
@@ -517,11 +538,6 @@ export function TokenBalancesCard() {
                             <span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">
                               {chainName}
                             </span>
-                            {/* {hasRealtimePrice && (
-                              <span className="text-xs bg-green-600 px-1.5 py-0.5 rounded text-white">
-                                LIVE
-                              </span>
-                            )} */}
                           </div>
                           <div className="text-sm text-gray-400">{token.name}</div>
                         </div>
@@ -532,8 +548,7 @@ export function TokenBalancesCard() {
                               customPnL >= 0 ? 'text-green-400' : 'text-red-400'
                             }`}
                           >
-                            {customPnL >= 0 ? '+' : ''}
-                            {formatUSD(customPnL)}
+                            {isNaN(customPnL) ? '$NaN' : `${customPnL >= 0 ? '+' : ''}${formatUSD(customPnL)}`}
                           </div>
                         </div>
                       </div>
@@ -548,9 +563,7 @@ export function TokenBalancesCard() {
                         </div>
                         <div className="relative z-50">
                           <div className="text-[#00F5E0] text-xs mb-1">Current Price</div>
-                          <div
-                            className={`font-medium `}
-                          >
+                          <div className="font-medium text-white">
                             ${token.price_to_usd.toFixed(2)}
                           </div>
                         </div>
@@ -562,6 +575,7 @@ export function TokenBalancesCard() {
                               currentPrice={entryPrice}
                               defaultPrice={defaultEntryPrice}
                               onPriceChange={(price) => updateEntryPrice(tokenKey, price)}
+                              hasCustomPrice={isCustom}
                             />
                           </div>
                         </div>
@@ -572,8 +586,7 @@ export function TokenBalancesCard() {
                               customROI >= 0 ? 'text-green-400' : 'text-red-400'
                             }`}
                           >
-                            {customROI >= 0 ? '+' : ''}
-                            {formatPercent(customROI)}
+                            {isNaN(customROI) ? 'NaN%' : `${customROI >= 0 ? '+' : ''}${formatPercent(customROI)}`}
                           </div>
                         </div>
                       </div>

@@ -6,7 +6,7 @@ import TokenSelect from 'src/lib/wagmi/components/token-selector/token-lists/Tok
 import { ReactNode } from 'react'
 import { useDerivedStateCrossChainSwap } from 'src/ui/swap/cross-chain/derivedstate-cross-chain-swap-provider'
 import { useDerivedStateSimpleSwap } from 'src/ui/swap/simple/derivedstate-simple-swap-provider'
-import KatanaCandlestickChart from 'src/ui/swap/simple/KatanaCandlestickChart'
+import KatanaCandlestickChart from 'src/ui/swap/simple/KatanaCandlestickChart/KatanaCandlestickChart'
 import { useChainId } from 'wagmi'
 
 interface CommonSwapLayoutProps {
@@ -30,21 +30,20 @@ export default function CommonSwapLayout({ children, }: CommonSwapLayoutProps) {
       <div className="flex flex-col lg:flex-row gap-4 mb-4 w-full max-w-none">
         {/* Chart Section - Left side, takes more space */}
         <div className="flex-1 lg:flex-[2] order-2 lg:order-1">
-          {/* Chart Header - Show on mobile/tablet only */}
-          <div className="block lg:hidden mb-4">
-            <div className="glow-box text-white">
-              <ChartHeader token0={token0} />
-            </div>
-          </div>
-
-          {/* Chart Container - Fixed Height with exact GlowBox styling */}
-          <div className="h-[400px] sm:h-[500px] lg:h-[600px] w-full">
-            <div className="glow-box h-full w-full !p-1 relative">
-              <div className="relative h-full w-full z-10 dot-pattern-cyan">
-                {connectedChainId === 747474 ? <KatanaCandlestickChart tokenOne={token0} /> : <ChartSpot />}
-                
+          {/* Chart Container - Let KatanaCandlestickChart handle its own sizing and glow-box */}
+          <div className="w-full">
+            {connectedChainId === 747474 ? (
+              <KatanaCandlestickChart tokenOne={token0!} />
+            ) : (
+              /* Fallback chart with original styling for non-Katana chains */
+              <div className="h-[400px] sm:h-[500px] lg:h-[600px] w-full">
+                <div className="glow-box h-full w-full !p-1 relative">
+                  <div className="relative h-full w-full z-10 dot-pattern-cyan">
+                    <ChartSpot />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

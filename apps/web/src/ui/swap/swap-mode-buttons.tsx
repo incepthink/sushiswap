@@ -43,7 +43,7 @@ export const SwapModeButtons = () => {
   const swapTabs = useMemo(() => [
     {
       id: 'swap',
-      label: 'Swap',
+      label: 'Instant',
       icon: <SwapIcon />,
       description: 'Trade tokens instantly at market prices',
       path: `/${ChainKey[chainId]}/swap`,
@@ -51,7 +51,7 @@ export const SwapModeButtons = () => {
     },
     {
       id: 'limit',
-      label: 'Limit',
+      label: 'Trigger',
       icon: <LimitIcon />,
       description: 'Set custom prices for your trades',
       path: `/${ChainKey[chainId]}/limit`,
@@ -59,20 +59,20 @@ export const SwapModeButtons = () => {
     },
     {
       id: 'dca',
-      label: 'DCA',
+      label: 'Recurring',
       icon: <DCAIcon />,
       description: 'Dollar-cost average into your favorite tokens',
       path: `/${ChainKey[chainId]}/dca`,
       isSupported: isTwapSupportedChainId(chainId),
     },
-    {
-      id: 'cross-chain',
-      label: 'Bridge',
-      icon: <ShuffleIcon width={16} height={16} className="text-current" />,
-      description: 'Swap tokens across 15+ different blockchain networks',
-      path: `/${ChainKey[chainId]}/cross-chain-swap`,
-      isSupported: isXSwapSupportedChainId(chainId),
-    },
+    // {
+    //   id: 'cross-chain',
+    //   label: 'Bridge',
+    //   icon: <ShuffleIcon width={16} height={16} className="text-current" />,
+    //   description: 'Swap tokens across 15+ different blockchain networks',
+    //   path: `/${ChainKey[chainId]}/cross-chain-swap`,
+    //   isSupported: isXSwapSupportedChainId(chainId),
+    // },
   ], [chainId])
 
   // Determine active tab based on current pathname
@@ -103,7 +103,7 @@ export const SwapModeButtons = () => {
           </span>
         ) : (
           <>
-            {tab.icon}
+            {/* {tab.icon} */}
             <span>{tab.label}</span>
           </>
         )}

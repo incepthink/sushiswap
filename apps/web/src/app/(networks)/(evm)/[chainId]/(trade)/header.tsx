@@ -8,7 +8,7 @@ import { WagmiHeaderComponents } from 'src/lib/wagmi/components/wagmi-header-com
 import { SUPPORTED_NETWORKS } from 'src/config'
 
 // Import your NavLink component (you'll need to create this)
-const NavLink: FC<{ href: string; children: React.ReactNode }> = ({ href, children }) => {
+const NavLink: FC<{ href: string; label: string; children: React.ReactNode }> = ({ href, label, children }) => {
   const isExternal = href.startsWith('http')
   
   if (isExternal) {
@@ -16,6 +16,7 @@ const NavLink: FC<{ href: string; children: React.ReactNode }> = ({ href, childr
       <a
         href={href}
         rel="noopener noreferrer"
+        target={label === "Bridge" ? "_blank" : ""}
         className="text-white hover:text-[#00F5E0] transition-colors duration-200 py-2 text-xl"
       >
         {children}
@@ -26,6 +27,7 @@ const NavLink: FC<{ href: string; children: React.ReactNode }> = ({ href, childr
   return (
     <a
       href={href}
+      target={label === "Bridge" ? "_blank" : ""}
       className="text-[#00F5E0] transition-colors duration-200 py-2 text-xl"
     >
       {children}
@@ -55,6 +57,10 @@ const navItems = [
   { 
     href: "https://v2.aggtrade.xyz/lend/earn", 
     label: "Earn/Borrow" 
+  },
+  { 
+    href: "https://app.katana.network/", 
+    label: "Bridge" 
   },
   { 
     href: "https://v2.aggtrade.xyz/profile", 
@@ -124,7 +130,7 @@ export const Header: FC<HeaderProps> = ({
         <ul className="hidden lg:flex list-none gap-8 m-0 p-4">
           {navItems.map(({ href, label }) => (
             <li key={href}>
-              <NavLink href={href}>{label}</NavLink>
+              <NavLink href={href} label={label}>{label}</NavLink>
             </li>
           ))}
         </ul>

@@ -5,6 +5,7 @@ interface EditablePriceProps {
   currentPrice: number | string | null | undefined;
   defaultPrice: number | string | null | undefined;
   onPriceChange: (price: number) => void;
+  hasCustomPrice?: boolean; // New prop from the hook
 }
 
 function asNumber(v: number | string | null | undefined, fallback = 0): number {
@@ -13,15 +14,12 @@ function asNumber(v: number | string | null | undefined, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function nearlyEqual(a: number, b: number, eps = 1e-9) {
-  return Math.abs(a - b) < eps;
-}
-
 export function EditablePrice({
   tokenKey,
   currentPrice,
   defaultPrice,
   onPriceChange,
+  hasCustomPrice = false, // Default to false for backward compatibility
 }: EditablePriceProps) {
   // Normalize incoming values once per render
   const safeDefault = useMemo(() => asNumber(defaultPrice, 0), [defaultPrice]);
@@ -36,7 +34,6 @@ export function EditablePrice({
   // Keep local state in sync if parent updates price externally
   // (optional but helpful)
   if (!isEditing && editValue !== safeCurrent.toFixed(2)) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     setEditValue(safeCurrent.toFixed(2));
   }
 
@@ -92,7 +89,7 @@ export function EditablePrice({
     >
       <div className="flex justify-center gap-2 relative cursor-pointer hover:bg-gray-700 px-2 py-1 rounded transition-colors">
         <span>${safeCurrent.toFixed(2)}</span>
-        {!nearlyEqual(safeCurrent, safeDefault) && (
+        {hasCustomPrice && (
           <div className="text-xs text-blue-400 mt-1">Custom</div>
         )}
       </div>

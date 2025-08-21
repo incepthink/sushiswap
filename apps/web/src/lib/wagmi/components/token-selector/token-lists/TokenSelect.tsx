@@ -43,6 +43,7 @@ const TokenSelect = () => {
       className=""
       label="Select Token"             // Optional label
       tokenSelectorOnly={true}         // ← ADD THIS LINE
+      topSelect={true}
     />
   );
 };
