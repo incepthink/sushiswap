@@ -45,7 +45,10 @@ const useEntryPrices = (address: string | undefined, data: PortfolioToken[] | un
 
   // Initialize entry prices when data first loads
   useEffect(() => {
-    if (!address || !data || isInitialized) return
+    if (!address || !data || data.length === 0) {
+      setIsInitialized(false)
+      return
+    }
 
     const storageKey = `entry_prices_${address}`
     const stored = localStorage.getItem(storageKey)
@@ -65,7 +68,7 @@ const useEntryPrices = (address: string | undefined, data: PortfolioToken[] | un
 
     data.forEach((token) => {
       const tokenKey = `${token.chain_id}-${token.contract_address}`
-      if (!(tokenKey in newEntryPrices)) {
+      if (!(tokenKey in newEntryPrices) && token.price_to_usd && !isNaN(token.price_to_usd)) {
         // Use current price as initial entry price
         newEntryPrices[tokenKey] = token.price_to_usd
         hasNewPrices = true
@@ -80,7 +83,7 @@ const useEntryPrices = (address: string | undefined, data: PortfolioToken[] | un
     }
     
     setIsInitialized(true)
-  }, [address, data, isInitialized])
+  }, [address, data])
 
   const updateEntryPrice = (tokenKey: string, price: number) => {
     if (!address) return
@@ -93,12 +96,14 @@ const useEntryPrices = (address: string | undefined, data: PortfolioToken[] | un
   }
 
   const getEntryPrice = (tokenKey: string, defaultPrice: number) => {
-    return entryPrices[tokenKey] ?? defaultPrice
+    const storedPrice = entryPrices[tokenKey]
+    // Return stored price if it exists and is valid, otherwise return default
+    return (storedPrice !== undefined && !isNaN(storedPrice)) ? storedPrice : defaultPrice
   }
 
   const hasCustomPrice = (tokenKey: string, defaultPrice: number) => {
     const storedPrice = entryPrices[tokenKey]
-    return storedPrice !== undefined && Math.abs(storedPrice - defaultPrice) > 0.01
+    return storedPrice !== undefined && !isNaN(storedPrice) && Math.abs(storedPrice - defaultPrice) > 0.01
   }
 
   return { entryPrices, updateEntryPrice, getEntryPrice, hasCustomPrice, isInitialized }
@@ -204,28 +209,40 @@ export function TokenBalancesCard() {
 
   // Calculate custom totals based on user-defined entry prices
   const calculateCustomTotals = () => {
-    console.log("NAN debug", data, isInitialized);
-    
-    if (!data || !isInitialized) return { customTotalPnL: 0, customTotalROI: 0 }
+    // Don't calculate until we have data and prices are initialized
+    if (!data || data.length === 0 || !isInitialized) {
+      return { customTotalPnL: 0, customTotalROI: 0 }
+    }
 
     let customTotalPnL = 0
     let totalInvested = 0
 
     data.forEach((token) => {
       const tokenKey = `${token.chain_id}-${token.contract_address}`
+      
+      // Validate token data first
+      if (!token.price_to_usd || isNaN(token.price_to_usd) || 
+          !token.amount || isNaN(token.amount) || 
+          !token.value_usd || isNaN(token.value_usd)) {
+        console.warn(`Invalid data for token ${token.symbol}:`, { 
+          price: token.price_to_usd, 
+          amount: token.amount, 
+          value: token.value_usd 
+        })
+        return
+      }
+      
       const entryPrice = getEntryPrice(tokenKey, token.price_to_usd)
       
-      // Ensure we have valid numbers
-      if (isNaN(entryPrice) || isNaN(token.amount) || isNaN(token.value_usd)) {
-        console.warn(`Invalid data for token ${token.symbol}:`, { entryPrice, amount: token.amount, value: token.value_usd })
+      // Validate entry price
+      if (!entryPrice || isNaN(entryPrice) || entryPrice <= 0) {
+        console.warn(`Invalid entry price for token ${token.symbol}:`, entryPrice)
         return
       }
       
       const investedValue = entryPrice * token.amount
       const currentValue = token.value_usd
       const tokenPnL = currentValue - investedValue
-
-      console.log("PNL", tokenPnL);
 
       customTotalPnL += tokenPnL
       totalInvested += investedValue
@@ -291,7 +308,7 @@ export function TokenBalancesCard() {
               <div className={`text-lg sm:text-xl font-semibold ${
                 customTotalPnL >= 0 ? 'text-green-400' : 'text-red-400'
               }`}>
-                {isNaN(customTotalPnL) ? '$NaN' : `${customTotalPnL >= 0 ? '+' : ''}$${customTotalPnL.toFixed(2)}`}
+                {!isInitialized || isNaN(customTotalPnL) ? '$0.00' : `${customTotalPnL >= 0 ? '+' : ''}$${customTotalPnL.toFixed(2)}`}
               </div>
               <div className="text-xs text-gray-400">Custom P&L</div>
             </div>
@@ -300,7 +317,7 @@ export function TokenBalancesCard() {
               <div className={`text-lg sm:text-xl font-semibold ${
                 customTotalROI >= 0 ? 'text-green-400' : 'text-red-400'
               }`}>
-                {isNaN(customTotalROI) ? 'NaN%' : `${customTotalROI >= 0 ? '+' : ''}${formatPercent(customTotalROI)}`}
+                {!isInitialized || isNaN(customTotalROI) ? '0.00%' : `${customTotalROI >= 0 ? '+' : ''}${formatPercent(customTotalROI)}`}
               </div>
               <div className="text-xs text-gray-400">Custom ROI</div>
             </div>
@@ -351,24 +368,15 @@ export function TokenBalancesCard() {
                       const tokenKey = `${token.chain_id}-${token.contract_address}`
                       
                       // Use current price as default entry price
-                      const defaultEntryPrice = token.price_to_usd
+                      const defaultEntryPrice = token.price_to_usd || 0
                       const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
                       const isCustom = hasCustomPrice(tokenKey, defaultEntryPrice)
                       
                       // Calculate custom P&L and ROI based on user entry price
-                      const investedValue = entryPrice * token.amount
-                      const currentValue = token.value_usd
+                      const investedValue = entryPrice * (token.amount || 0)
+                      const currentValue = token.value_usd || 0
                       const customPnL = currentValue - investedValue
                       const customROI = investedValue > 0 ? customPnL / investedValue : 0
-                      
-                      console.log(`Token ${token.symbol}:`, { 
-                        entryPrice, 
-                        amount: token.amount, 
-                        investedValue, 
-                        currentValue, 
-                        customPnL, 
-                        customROI 
-                      });
                       
                       return (
                         <tr
@@ -410,7 +418,7 @@ export function TokenBalancesCard() {
                             </div>
                           </td>
                           <td className="py-4 pr-4 text-right">
-                            <FormattedNumber number={token.amount.toString()} />
+                            <FormattedNumber number={token.amount?.toString() || '0'} />
                           </td>
                           <td className="py-4 text-center">
                             <EditablePrice
@@ -422,20 +430,20 @@ export function TokenBalancesCard() {
                             />
                           </td>
                           <td className="py-4 pl-2 pr-4 text-center">
-                            ${token.price_to_usd.toFixed(2)}
+                            ${(token.price_to_usd || 0).toFixed(2)}
                           </td>
                           <td className="py-4 pr-4 text-center font-medium">
-                            {formatUSD(token.value_usd)}
+                            {formatUSD(token.value_usd || 0)}
                           </td>
                           <td className={`py-4 pr-4 text-center font-medium ${
                             customPnL >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {isNaN(customPnL) ? '$NaN' : `${customPnL >= 0 ? '+' : ''}${formatUSD(customPnL)}`}
+                            {!isInitialized || isNaN(customPnL) ? '$0.00' : `${customPnL >= 0 ? '+' : ''}${formatUSD(customPnL)}`}
                           </td>
                           <td className={`py-4 pr-4 text-right font-medium ${
                             customROI >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {isNaN(customROI) ? 'NaN%' : `${customROI >= 0 ? '+' : ''}${formatPercent(customROI)}`}
+                            {!isInitialized || isNaN(customROI) ? '0.00%' : `${customROI >= 0 ? '+' : ''}${formatPercent(customROI)}`}
                           </td>
                         </tr>
                       )
@@ -452,13 +460,13 @@ export function TokenBalancesCard() {
                   const tokenKey = `${token.chain_id}-${token.contract_address}`
                   
                   // Use current price as default entry price
-                  const defaultEntryPrice = token.price_to_usd
+                  const defaultEntryPrice = token.price_to_usd || 0
                   const entryPrice = getEntryPrice(tokenKey, defaultEntryPrice)
                   const isCustom = hasCustomPrice(tokenKey, defaultEntryPrice)
                   
                   // Calculate custom P&L and ROI based on user entry price
-                  const investedValue = entryPrice * token.amount
-                  const currentValue = token.value_usd
+                  const investedValue = entryPrice * (token.amount || 0)
+                  const currentValue = token.value_usd || 0
                   const customPnL = currentValue - investedValue
                   const customROI = investedValue > 0 ? customPnL / investedValue : 0
                   
@@ -500,11 +508,11 @@ export function TokenBalancesCard() {
                           <div className="text-sm text-gray-400">{token.name}</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold">{formatUSD(token.value_usd)}</div>
+                          <div className="text-lg font-bold">{formatUSD(token.value_usd || 0)}</div>
                           <div className={`text-sm font-medium ${
                             customPnL >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {isNaN(customPnL) ? '$NaN' : `${customPnL >= 0 ? '+' : ''}${formatUSD(customPnL)}`}
+                            {!isInitialized || isNaN(customPnL) ? '$0.00' : `${customPnL >= 0 ? '+' : ''}${formatUSD(customPnL)}`}
                           </div>
                         </div>
                       </div>
@@ -514,13 +522,13 @@ export function TokenBalancesCard() {
                         <div className="relative z-50">
                           <div className="text-[#00F5E0] text-xs mb-1">Balance</div>
                           <div className="font-medium text-white">
-                            <FormattedNumber number={token.amount.toString()} />
+                            <FormattedNumber number={token.amount?.toString() || '0'} />
                           </div>
                         </div>
                         <div className="relative z-50">
                           <div className="text-[#00F5E0] text-xs mb-1">Current Price</div>
                           <div className="font-medium text-white">
-                            ${token.price_to_usd.toFixed(2)}
+                            ${(token.price_to_usd || 0).toFixed(2)}
                           </div>
                         </div>
                         <div className="relative z-50">
@@ -540,7 +548,7 @@ export function TokenBalancesCard() {
                           <div className={`font-medium ${
                             customROI >= 0 ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {isNaN(customROI) ? 'NaN%' : `${customROI >= 0 ? '+' : ''}${formatPercent(customROI)}`}
+                            {!isInitialized || isNaN(customROI) ? '0.00%' : `${customROI >= 0 ? '+' : ''}${formatPercent(customROI)}`}
                           </div>
                         </div>
                       </div>

@@ -9,25 +9,51 @@ interface TokenData {
   symbol?: string;
 }
 
+// Structure to store entry price data
+interface EntryPriceData {
+  price: number;
+  isCustom: boolean;
+  timestamp: number;
+}
+
 // Custom hook for managing entry prices in localStorage
 export function useEntryPrices(
   address: string | undefined, 
   data?: TokenData[]
 ) {
-  const [entryPrices, setEntryPrices] = useState<{ [key: string]: number }>({});
+  const [entryPrices, setEntryPrices] = useState<{ [key: string]: EntryPriceData }>({});
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize entry prices when data first loads
   useEffect(() => {
-    if (!address || !data || isInitialized) return;
+    if (!address || !data || data.length === 0) {
+      setIsInitialized(false);
+      return;
+    }
+
+    // If already initialized for this data set, don't reinitialize
+    if (isInitialized) return;
 
     const storageKey = `entry_prices_${address}`;
     const stored = localStorage.getItem(storageKey);
-    let storedEntryPrices: { [key: string]: number } = {};
+    let storedEntryPrices: { [key: string]: EntryPriceData } = {};
 
     if (stored) {
       try {
-        storedEntryPrices = JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Handle both old format (just numbers) and new format (objects)
+        Object.keys(parsed).forEach(key => {
+          if (typeof parsed[key] === 'number') {
+            // Convert old format to new format
+            storedEntryPrices[key] = {
+              price: parsed[key],
+              isCustom: false,
+              timestamp: Date.now()
+            };
+          } else if (parsed[key] && typeof parsed[key] === 'object') {
+            storedEntryPrices[key] = parsed[key];
+          }
+        });
       } catch (error) {
         console.error('Error parsing stored entry prices:', error);
       }
@@ -44,8 +70,12 @@ export function useEntryPrices(
       );
       
       if (!(tokenKey in newEntryPrices)) {
-        // Use current price as initial entry price
-        newEntryPrices[tokenKey] = token.price_to_usd;
+        // Use current price as initial entry price (not custom)
+        newEntryPrices[tokenKey] = {
+          price: token.price_to_usd,
+          isCustom: false,
+          timestamp: Date.now()
+        };
         hasNewPrices = true;
       }
     });
@@ -68,7 +98,23 @@ export function useEntryPrices(
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       try {
-        setEntryPrices(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        const convertedPrices: { [key: string]: EntryPriceData } = {};
+        
+        Object.keys(parsed).forEach(key => {
+          if (typeof parsed[key] === 'number') {
+            // Convert old format to new format
+            convertedPrices[key] = {
+              price: parsed[key],
+              isCustom: false,
+              timestamp: Date.now()
+            };
+          } else if (parsed[key] && typeof parsed[key] === 'object') {
+            convertedPrices[key] = parsed[key];
+          }
+        });
+        
+        setEntryPrices(convertedPrices);
       } catch (error) {
         console.error('Error parsing stored entry prices:', error);
         setEntryPrices({});
@@ -80,7 +126,13 @@ export function useEntryPrices(
   const updateEntryPrice = (tokenKey: string, price: number) => {
     if (!address) return;
 
-    const newEntryPrices = { ...entryPrices, [tokenKey]: price };
+    const newEntryData: EntryPriceData = {
+      price,
+      isCustom: true, // Mark as custom when manually updated
+      timestamp: Date.now()
+    };
+
+    const newEntryPrices = { ...entryPrices, [tokenKey]: newEntryData };
     setEntryPrices(newEntryPrices);
     
     const storageKey = `entry_prices_${address}`;
@@ -88,12 +140,13 @@ export function useEntryPrices(
   };
 
   const getEntryPrice = (tokenKey: string, defaultPrice: number) => {
-    return entryPrices[tokenKey] ?? defaultPrice;
+    const entryData = entryPrices[tokenKey];
+    return entryData?.price ?? defaultPrice;
   };
 
-  const hasCustomPrice = (tokenKey: string, defaultPrice: number) => {
-    const storedPrice = entryPrices[tokenKey];
-    return storedPrice !== undefined && Math.abs(storedPrice - defaultPrice) > 0.01;
+  const hasCustomPrice = (tokenKey: string, currentPrice: number) => {
+    const entryData = entryPrices[tokenKey];
+    return entryData?.isCustom === true;
   };
 
   const clearEntryPrices = () => {
